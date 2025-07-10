@@ -1,0 +1,10 @@
+{
+    "uid": "string",          
+    "displayName": "string",
+    "email": "string",
+    "phoneNumber": "string",
+    "photoURL": "string",
+    "interests": ["string"],       
+    "createdAt": "timestamp"
+  }
+  

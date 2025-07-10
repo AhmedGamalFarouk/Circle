@@ -1,0 +1,16 @@
+{
+    "voteId": "string",
+    "circleId": "string",
+    "createdBy": "string",
+    "stage": "1 | 2",                   
+    "question": "string",
+    "options": [
+      {
+        "optionId": "string",
+        "text": "string",
+        "votes": ["string"]        
+      }
+    ],
+    "deadline": "timestamp",
+    "createdAt": "timestamp"
+  }

@@ -1,0 +1,10 @@
+{
+    "circleId": "string",
+    "name": "string",
+    "type": "private | flash",       
+    "createdBy": "string",               
+    "members": ["string"],         
+    "createdAt": "timestamp",
+    "expiresAt": "timestamp"           
+  }
+  
