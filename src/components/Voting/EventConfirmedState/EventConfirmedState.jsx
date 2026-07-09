@@ -34,7 +34,9 @@ const EventConfirmedNew = ({ eventData, onRsvp, onStartNewPoll }) => {
         collection(db, "circles", circleId, "events"),
         {
           activity: winningActivity || "N/A",
+          title: winningActivity || "N/A", // Write both for Mobile compatibility
           place: winningPlace || "N/A",
+          location: winningPlace || "N/A",  // Write both for Mobile compatibility
           createdAt: serverTimestamp(),
           status: "pending",
           rsvps: rsvps || {},
@@ -106,7 +108,7 @@ const EventConfirmedNew = ({ eventData, onRsvp, onStartNewPoll }) => {
                   <Sparkles size={24} className="text-purple-400" />
                 </div>
                 <p className="truncate text-lg font-semibold">
-                  {winningActivity || "N/A"}
+                  {winningActivity || eventData?.title || eventData?.activity || "N/A"}
                 </p>
               </div>
               <div className="flex items-center gap-4">
@@ -114,7 +116,7 @@ const EventConfirmedNew = ({ eventData, onRsvp, onStartNewPoll }) => {
                   <Map size={24} className="text-purple-400" />
                 </div>
                 <p className="truncate text-lg font-semibold">
-                  {winningPlace || "N/A"}
+                  {winningPlace || eventData?.location || eventData?.place || "N/A"}
                 </p>
               </div>
             </div>

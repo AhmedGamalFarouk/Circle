@@ -9,6 +9,8 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../../../firebase-config";
 import ContextualPin from "../ContextualPin/ContextualPin";
@@ -35,6 +37,7 @@ export default function CircleScreen() {
 
   const [circle, setCircle] = useState(null);
   const [poll, setPoll] = useState(null);
+  const [event, setEvent] = useState(null);
   const [currentStage, setCurrentStage] = useState(PLANNING_STAGES.IDLE);
   const [isPollModalVisible, setPollModalVisible] = useState(false);
   const [pollType, setPollType] = useState(null);
@@ -69,6 +72,29 @@ export default function CircleScreen() {
     return () => unsubscribe();
   }, [circleId]);
 
+  // Listen to confirmed events in the events subcollection
+  useEffect(() => {
+    if (!circleId) return;
+
+    const eventsQuery = query(
+      collection(db, "circles", circleId, "events"),
+      where("status", "==", "confirmed")
+    );
+
+    const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const confirmedEvent = snapshot.docs[0];
+        setEvent({ id: confirmedEvent.id, ...confirmedEvent.data() });
+      } else {
+        setEvent(null);
+      }
+    }, (error) => {
+      console.error("Error listening to events subcollection:", error);
+    });
+
+    return () => unsubscribeEvents();
+  }, [circleId]);
+
   const handleStartPoll = () => {
     setPollType("activity");
     setPollModalVisible(true);
@@ -94,6 +120,7 @@ export default function CircleScreen() {
           stage: PLANNING_STAGES.PLANNING_ACTIVITY,
           activityPoll: { ...pollDataWithTimestamp, votes: {} },
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
 
         // Immediately set the poll state with the new poll id and data
@@ -109,6 +136,7 @@ export default function CircleScreen() {
           messageType: 'system',
           text: `🗳️ Activity poll started: "${pollData.question}"`,
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
 
       } else if (pollType === 'place') {
@@ -129,6 +157,7 @@ export default function CircleScreen() {
           messageType: 'system',
           text: `📍 Place poll started: "${pollData.question}"`,
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
       }
     } catch (error) {
@@ -182,6 +211,7 @@ export default function CircleScreen() {
       messageType: "system",
       text: `➕ ${userProfile?.username || "Someone"} added a new ${pollType} option: "${optionText}"`,
       timestamp: serverTimestamp(),
+      timeStamp: serverTimestamp(),
     });
   };
 
@@ -222,6 +252,7 @@ export default function CircleScreen() {
           messageType: "system",
           text: `📊 Activity poll closed! "${winningOption}" won.`,
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
       } else if (currentStage === PLANNING_STAGES.PLANNING_PLACE) {
         if (!poll.placePoll) {
@@ -245,6 +276,7 @@ export default function CircleScreen() {
           messageType: "system",
           text: `📍 Place poll closed! "${winningOption}" won.`,
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
 
       }
@@ -259,6 +291,19 @@ export default function CircleScreen() {
 
   const handleRsvp = async (status) => {
     if (!poll?.id || !userProfile) return;
+
+    // Update RSVP on confirmed subcollection event if it exists
+    if (event?.id) {
+      try {
+        const eventRef = doc(db, "circles", circleId, "events", event.id);
+        await updateDoc(eventRef, {
+          rsvps: { ...(event.rsvps || {}), [user.uid]: status },
+        });
+      } catch (error) {
+        console.error("Error updating RSVP in subcollection event:", error);
+      }
+    }
+
     const pollRef = doc(db, "circles", circleId, "polls", poll.id);
     await updateDoc(pollRef, {
       rsvps: { ...(poll.rsvps || {}), [user.uid]: status },
@@ -276,6 +321,20 @@ export default function CircleScreen() {
         setPollType('place');
         setPollModalVisible(true);
       } else if (currentStage === PLANNING_STAGES.PLACE_POLL_CLOSED) {
+        // Create confirmed event in the subcollection so Mobile is in sync!
+        const eventsRef = collection(db, 'circles', circleId, 'events');
+        await addDoc(eventsRef, {
+            title: poll.winningActivity,
+            activity: poll.winningActivity,
+            location: poll.winningPlace,
+            place: poll.winningPlace,
+            status: 'confirmed', // Confirmed directly on web
+            createdAt: serverTimestamp(),
+            createdBy: user.uid,
+            rsvps: {},
+            day: new Date().toISOString().split('T')[0] // default to today
+        });
+
         // Finalize event and enable RSVPs
         await updateDoc(pollRef, {
           stage: PLANNING_STAGES.EVENT_CONFIRMED,
@@ -288,6 +347,7 @@ export default function CircleScreen() {
           messageType: 'system',
           text: `🎉 Event confirmed! ${poll.winningPlace} for ${poll.winningActivity}. Please RSVP above!`,
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
       }
     } catch (error) {
@@ -311,6 +371,7 @@ export default function CircleScreen() {
           messageType: 'system',
           text: '🆕 Starting new event planning!',
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
         });
       }
 
@@ -354,10 +415,13 @@ export default function CircleScreen() {
           onVote={handleVote}
           onAddOption={handleAddOption}
           eventData={{
-            winningActivity: poll?.winningActivity,
-            winningPlace: poll?.winningPlace,
-            rsvps: poll?.rsvps || {},
-            currentUser: { id: user?.uid, rsvp: poll?.rsvps?.[user?.uid] },
+            winningActivity: event?.title || event?.activity || poll?.winningActivity,
+            winningPlace: event?.location || event?.place || poll?.winningPlace,
+            rsvps: event?.rsvps || poll?.rsvps || {},
+            currentUser: { 
+              id: user?.uid, 
+              rsvp: event?.rsvps?.[user?.uid] || poll?.rsvps?.[user?.uid] 
+            },
           }}
           onRsvp={handleRsvp}
           onStartNewPoll={handleStartNewPoll}

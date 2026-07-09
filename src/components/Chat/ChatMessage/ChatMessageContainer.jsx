@@ -94,7 +94,7 @@ function ChatMessageContainer({ circleId, setReplyTo, setEditingMessage }) {
     setError(null);
     const q = query(
       collection(db, "circles", circleId, "chat"),
-      orderBy("timestamp"),
+      orderBy("timeStamp"),
     );
 
     const unsubscribe = onSnapshot(

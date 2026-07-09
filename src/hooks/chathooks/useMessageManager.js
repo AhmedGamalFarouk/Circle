@@ -42,10 +42,13 @@ export function useMessageManager(circleId, circleName, userId, userName, photoU
           sentTime: formatTime(),
           text: text.trim(),
           timestamp: serverTimestamp(),
+          timeStamp: serverTimestamp(),
           replyTo: replyTo
             ? {
-              id: replyTo.id,
-              userName: replyTo.user?.userName ?? null,
+              id: replyTo.id || replyTo.messageId || null,
+              messageId: replyTo.id || replyTo.messageId || null,
+              userName: replyTo.user?.userName || replyTo.user?.username || replyTo.userName || replyTo.username || null,
+              username: replyTo.user?.userName || replyTo.user?.username || replyTo.userName || replyTo.username || null,
               text: replyTo.text ?? null, // Use null if text is missing
               messageType: replyTo.messageType ?? null,
             }
