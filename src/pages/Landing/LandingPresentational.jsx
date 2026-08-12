@@ -21,6 +21,8 @@ export default function LandingPresentational({
   openCCircleModal,
   createCircleModalRef,
   closeCCircleModal,
+  handleSkipAuth,
+  isSkipLoading,
 }) {
   const [authFormType, setAuthFormType] = useState("login");
   const { darkMode } = useContext(ThemeContext);
@@ -87,7 +89,7 @@ export default function LandingPresentational({
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
-                className="text-center"
+                className="flex flex-wrap items-center justify-center gap-4 text-center"
               >
                 <button
                   onClick={() => {
@@ -98,6 +100,15 @@ export default function LandingPresentational({
                 >
                   {t("Create Circle")}
                 </button>
+                {!isLoggedIn && (
+                  <button
+                    onClick={handleSkipAuth}
+                    disabled={isSkipLoading}
+                    className="from-secondary to-primary text-text hover:from-primary hover:to-secondary cursor-pointer rounded-lg bg-gradient-to-r px-6 py-3 font-medium shadow-md transition-all hover:scale-95 disabled:opacity-50"
+                  >
+                    {isSkipLoading ? t("Signing in...") : t("Skip Authentication")}
+                  </button>
+                )}
                 <Modal ref={createCircleModalRef}>
                   {isLoggedIn ? (
                     <CreateCircleModalContainer
