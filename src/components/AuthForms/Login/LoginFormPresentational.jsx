@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "../../../assets/icons/Logo";
 function LoginFormPresentational({
     handleSignIn,
+    handleSkipAuth,
     handleKeyPress,
     setShowPassword,
     email,
@@ -93,8 +94,7 @@ function LoginFormPresentational({
                             )}
                         </div>
 
-                        <div>
-
+                        <div className="space-y-2">
                             <Button
                                 variant={"primary"}
                                 size={"xlarge"}
@@ -103,6 +103,16 @@ function LoginFormPresentational({
                             >
                                 {isLoading ? "Signing in..." : "Login"}
                             </Button>
+                            {handleSkipAuth && (
+                                <button
+                                    type="button"
+                                    onClick={handleSkipAuth}
+                                    disabled={isLoading}
+                                    className="w-full h-12 rounded-xl from-secondary to-primary text-text hover:from-primary hover:to-secondary cursor-pointer bg-gradient-to-r font-medium shadow-md transition-all hover:scale-[0.99] disabled:opacity-50"
+                                >
+                                    {isLoading ? "Signing in..." : "Skip Authentication"}
+                                </button>
+                            )}
                         </div>
                         <div>
                             <Link

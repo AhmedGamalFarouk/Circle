@@ -70,10 +70,33 @@ export default function LoginFormContainer({ onSwitchToRegister }) {
             handleSignIn(e);
         }
     };
+    const handleSkipAuth = async () => {
+        setIsLoading(true);
+        try {
+            const userCredential = await signInWithEmailAndPassword(
+                auth,
+                "ahmedgamal5565@gmail.com",
+                "123456"
+            );
+            const token = await userCredential.user.getIdToken();
+            dispatch(setUserInfo({ user: userCredential.user, token }));
+            toast.success("Signed in successfully!");
+            const params = new URLSearchParams(window.location.search);
+            const redirect = params.get("redirect") || "/";
+            navigate(redirect, { replace: true });
+        } catch (error) {
+            console.error("Skip auth login error:", error);
+            toast.error(error.message || "Failed to sign in automatically");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <LoginFormPresentational
             onSwitchToRegister={onSwitchToRegister}
             handleSignIn={handleSignIn}
+            handleSkipAuth={handleSkipAuth}
             handleKeyPress={handleKeyPress}
             setShowPassword={setShowPassword}
             showPassword={showPassword}
