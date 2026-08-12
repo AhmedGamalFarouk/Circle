@@ -15,7 +15,7 @@ export default function Team() {
     {
       name: "Ahmed Gamal",
       image: Gamal,
-      role: "Mobile Developer",
+      role: "Frontend & Mobile Developer",
       description:
         "I am a UX designer with a passion for creating intuitive user experiences. I am a quick learner and I am always looking to improve my skills.",
       cardColor: "#635",
