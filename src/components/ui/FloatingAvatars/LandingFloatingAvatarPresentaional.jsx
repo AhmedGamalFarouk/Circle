@@ -21,12 +21,14 @@ export default function LandingFloatingAvatarPresentaional({
 
   return (
     <>
-      {avatars.map((orb) => (
-        <Motion.div
-          key={orb.id}
-          className="absolute z-20"
-          style={{ left: orb.x, top: orb.y }}
-          initial={{ opacity: 0, scale: 0, rotate: -180 }}
+      {avatars.map((orb) => {
+        const isHovered = hoveredAvatar === orb.id;
+        return (
+          <Motion.div
+            key={orb.id}
+            className={`absolute ${isHovered ? "z-50" : "z-20"}`}
+            style={{ left: orb.x, top: orb.y, zIndex: isHovered ? 50 : 20 }}
+            initial={{ opacity: 0, scale: 0, rotate: -180 }}
           animate={{
             opacity: 1,
             scale: 1,
@@ -83,7 +85,8 @@ export default function LandingFloatingAvatarPresentaional({
             />
           </div>
         </Motion.div>
-      ))}
+        );
+      })}
     </>
   );
 }
