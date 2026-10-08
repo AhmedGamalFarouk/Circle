@@ -72,7 +72,7 @@ const ContextualPin = ({
               {eventData?.winningPlace ? ` @ ${eventData.winningPlace}` : ""}
             </span>
             <span className="text-sm text-secondary">
-              Voting is done. Waiting for an admin to confirm the event.
+              Voting is done. A circle admin confirms the event from the Events panel.
             </span>
           </div>
         );
