@@ -84,7 +84,7 @@ export default function CreateCircleModalPresentional({
         </div>
 
         {/* Expire Date - Only show for Flash circles */}
-        {circleType === "Flash" && (
+        {circleType === "flash" && (
           <div className="mb-2">
             <label htmlFor="expireDate" className="text-text mb-1 block text-sm font-medium">
               {t("Expire Date")} *

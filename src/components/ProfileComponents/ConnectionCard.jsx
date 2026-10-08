@@ -44,7 +44,7 @@ export const ConnectionCard = ({ connection, isLoading = false }) => {
         <div className="flex items-center space-x-4">
           {/* Avatar */}
           <img
-            src={connection.photoUrl || "/default-avatar.png"}
+            src={connection.photoUrl || connection.avatarPhoto || "/default-avatar.png"}
             alt={connection.username || connection.displayName}
             className="h-16 w-16 rounded-full border-2 border-white/20 object-cover"
             onError={(e) => {

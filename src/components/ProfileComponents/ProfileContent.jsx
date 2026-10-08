@@ -84,7 +84,7 @@ const ProfileContent = ({ activeTab, profileData }) => {
                   username: userData.username,
                   displayName: userData.displayName || userData.username,
                   email: userData.email,
-                  photoUrl: userData.photoUrl,
+                  photoUrl: userData.photoUrl || userData.avatarPhoto,
                   bio: userData.bio,
                   interests: userData.interests || [],
                   location: userData.location,

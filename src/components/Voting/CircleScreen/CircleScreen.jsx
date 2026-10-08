@@ -26,6 +26,7 @@ const PLANNING_STAGES = {
   ACTIVITY_POLL_CLOSED: "Activity Poll Closed",
   PLANNING_PLACE: "Planning the Place",
   PLACE_POLL_CLOSED: "Place Poll Closed",
+  PENDING_CONFIRMATION: "Pending Confirmation",
   EVENT_CONFIRMED: "Event Confirmed",
 };
 
@@ -285,7 +286,6 @@ export default function CircleScreen() {
     }
   };
   const handleDismiss = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPinVisible(false);
   };
 
@@ -394,6 +394,8 @@ export default function CircleScreen() {
       case PLANNING_STAGES.ACTIVITY_POLL_CLOSED:
       case PLANNING_STAGES.PLACE_POLL_CLOSED:
         return "View Results";
+      case PLANNING_STAGES.PENDING_CONFIRMATION:
+        return "View Status";
       case PLANNING_STAGES.EVENT_CONFIRMED:
         return "View Event Details";
       case PLANNING_STAGES.IDLE:
