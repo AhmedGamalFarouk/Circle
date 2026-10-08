@@ -9,9 +9,21 @@ const formatSentTime = (timeStamp) => {
         .replace(/\./g, "");
 };
 
+// Web stores reactions in `react`, mobile in `reactions` (same shape).
+const mergeReactions = (a = [], b = []) => {
+    const seen = new Set();
+    return [...a, ...b].filter((r) => {
+        const key = `${r?.userId}-${r?.emoji}`;
+        if (!r || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
 export function normalizeMessage(msg) {
     return {
         ...msg,
+        react: mergeReactions(msg.react, msg.reactions),
         imageUrl: msg.imageUrl || (msg.messageType === "image" ? msg.mediaUrl : undefined),
         videoUrl: msg.videoUrl || (msg.messageType === "video" ? msg.mediaUrl : undefined),
         audioUrl: msg.audioUrl || (msg.messageType === "audio" || msg.messageType === "voice" ? msg.mediaUrl : undefined),

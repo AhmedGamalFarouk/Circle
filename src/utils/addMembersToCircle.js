@@ -1,4 +1,4 @@
-import { getFirestore, doc, setDoc, collection, getDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, collection, getDoc, serverTimestamp } from "firebase/firestore";
 
 export async function addMembersToCircle(circleId, creatorUid, creatorProfile, selectedMembers, user) {
     const db = getFirestore();
@@ -10,7 +10,10 @@ export async function addMembersToCircle(circleId, creatorUid, creatorProfile, s
         isOwner: true, // <-- new field
         isAdmin: true,
         username: creatorProfile.username || user.username || "",
-        photoURL: creatorProfile.photoURL || user.photoURL || "",
+        photoURL: creatorProfile.photoURL || creatorProfile.photoUrl || user.photoURL || "",
+        // Same shape as mobile member docs
+        userId: creatorUid,
+        joinedAt: serverTimestamp(),
     });
 
     // Add selected members (not owner, not admin by default)
@@ -33,7 +36,9 @@ export async function addMembersToCircle(circleId, creatorUid, creatorProfile, s
                 isOwner: false, // <-- new field
                 isAdmin: false,
                 username: memberProfile.username || "",
-                photoURL: memberProfile.photoURL || "",
+                photoURL: memberProfile.photoURL || memberProfile.photoUrl || memberProfile.avatarPhoto || "",
+                userId: memberUid,
+                joinedAt: serverTimestamp(),
             });
         }
     }
