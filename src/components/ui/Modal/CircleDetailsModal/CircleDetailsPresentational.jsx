@@ -76,12 +76,12 @@ export default function CircleDetailsPresentational({
                                 isClearable
                             />
                         ) : (
-                            <div className="text-lg text-primary">{selectedCircle.circleType}</div>
+                            <div className="text-lg text-primary">{t(selectedCircle.circleType === "flash" ? "flash" : "permenent")}</div>
                         )}
                     </div>
                 </div>
 
-                {circleType === "Flash" && (
+                {circleType === "flash" && (
                     <div className="mb-2">
                         <label htmlFor="expireDate" className="text-text mb-1 block text-sm font-medium">
                             {t("Expire Date")} *
@@ -116,7 +116,7 @@ export default function CircleDetailsPresentational({
                             ? "bg-green-900/30 text-green-400"
                             : "bg-purple-900/30 text-purple-400"
                             }`}>
-                            {selectedCircle.circlePrivacy}
+                            {t(selectedCircle.circlePrivacy === "private" ? "private" : "public")}
                         </span>
                     )}
                 </div>

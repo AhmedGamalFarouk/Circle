@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import Modal from "../ui/Modal/Modal";
 import { usePollModal } from "../../hooks/chathooks/usePollModal";
 import EventForm from "./EventForm";
+import { useSelector } from "react-redux";
+import { useParams } from "react-router";
+import { useAuth } from "../../hooks/useAuth";
 
 // Array of background colors from your theme for avatars
 const AVATAR_COLORS = [
@@ -33,6 +36,11 @@ export default function PendingEventCard({ event }) {
   );
   const status = event.status;
   const pollModal = usePollModal();
+  const { circleId } = useParams();
+  const { userId } = useAuth();
+  const members = useSelector((state) => state.members.membersByCircle[circleId]) || [];
+  // Only circle admins can confirm a pending event (same rule as mobile)
+  const canConfirm = members.some((member) => member.id === userId && (member.isAdmin || member.isOwner));
 
   useEffect(() => {
     if (isPollModalVisible) {
@@ -159,10 +167,11 @@ export default function PendingEventCard({ event }) {
         {/* Status Badge */}
         <motion.span
           onClick={() => {
-            setPollModalVisible(true);
+            if (canConfirm) setPollModalVisible(true);
           }}
-          whileHover={{ scale: 1.1 }}
-          className="relative z-10 flex-shrink-0 cursor-pointer rounded-full px-3 py-1 text-xs font-medium"
+          title={canConfirm ? undefined : "Waiting for an admin to confirm"}
+          whileHover={canConfirm ? { scale: 1.1 } : undefined}
+          className={`relative z-10 flex-shrink-0 rounded-full px-3 py-1 text-xs font-medium ${canConfirm ? "cursor-pointer" : "cursor-default"}`}
           style={{
             background:
               status === "confirmed"

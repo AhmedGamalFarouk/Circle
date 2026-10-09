@@ -1,6 +1,6 @@
 import { useRef, useState, Suspense, lazy, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { updateDoc, doc, getFirestore } from "firebase/firestore";
+import { updateDoc, doc, getFirestore, Timestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { fetchCircles } from "../../../../features/circles/circlesSlice";
@@ -42,7 +42,7 @@ export default function CircleDetailsContainer({ onClose }) {
     );
 
     const circleTypeOptions = [
-        { value: "permenent", label: t("permenent") },
+        { value: "permanent", label: t("permenent") },
         { value: "flash", label: t("flash") },
     ];
 
@@ -73,7 +73,7 @@ export default function CircleDetailsContainer({ onClose }) {
     const handleSave = async () => {
         setIsLoading(true);
         try {
-            let imageUrl = selectedCircle.photoUrl || "";
+            let imageUrl = selectedCircle.imageUrl || "";
             if (uploadedImage?.file) {
                 const uploadResult = await cloudinaryService.uploadImage(
                     uploadedImage.file,
@@ -95,7 +95,10 @@ export default function CircleDetailsContainer({ onClose }) {
                 circlePrivacy,
                 interests: selectedInterests,
                 imageUrl: imageUrl,
-                ...(circleType === "Flash" && expireDate ? { expireDate } : {}),
+                expiresAt:
+                    circleType === "flash" && expireDate
+                        ? Timestamp.fromDate(new Date(expireDate))
+                        : null,
             });
 
             toast.success(t("Circle updated successfully!"));
@@ -113,9 +116,13 @@ export default function CircleDetailsContainer({ onClose }) {
 
     useEffect(() => {
         if (isEditing && selectedCircle) {
-            setCircleType(selectedCircle.circleType || "");
+            // Older web circles stored the misspelled "permenent"
+            setCircleType(selectedCircle.circleType === "flash" ? "flash" : "permanent");
             setCirclePrivacy(selectedCircle.circlePrivacy || "");
-            setExpireDate(selectedCircle.expireDate || "");
+            const expiresAt = selectedCircle.expiresAt;
+            // circlesSlice serializes expiresAt to an ISO string
+            const expiresDate = expiresAt?.toDate ? expiresAt.toDate() : expiresAt ? new Date(expiresAt) : null;
+            setExpireDate(expiresDate && !isNaN(expiresDate) ? expiresDate.toISOString().split("T")[0] : "");
             setSelectedInterests(selectedCircle.interests || []);
         }
     }, [isEditing, selectedCircle]);

@@ -13,7 +13,7 @@ import {
   validatePassword,
 } from "../../../utils/FormValidator";
 import { validateUsername } from "../../../utils/usernameValidator";
-import { createUserProfile } from "../../../fire_base/profileController/profileController";
+import { createUserProfile, getUserProfile } from "../../../fire_base/profileController/profileController";
 import interests from "../../../constants/interests";
 
 // components
@@ -203,7 +203,10 @@ function RegisterFormContainer({ onSwitchToLogin }) {
         bio: "",
         location: location || "",
         joinDate: "",
-        photoUrl: user.photoUrl || null,
+        photoUrl: user.photoURL || null,
+        // Mobile reads the avatar from avatarPhoto
+        avatarPhoto: user.photoURL || "",
+        isBlocked: false,
         coverPhoto:
           "https://res.cloudinary.com/dlyfph65r/image/upload/v1753334626/coverDeafault_b5c8od.jpg",
         stats: {
@@ -260,18 +263,19 @@ function RegisterFormContainer({ onSwitchToLogin }) {
       // Check if this is a new user (first time signing up)
       const isNewUser = userCredential._tokenResponse?.isNewUser || false;
 
-      // Always create/update user profile in Firestore
-      // This handles both new users and returning users who might not have a profile
+      // Profile for users signing in with Google for the first time
       const profileData = {
         uid: user.uid,
         email: user.email,
-        provider: "email",
+        provider: "google",
         emailVerified: user.emailVerified,
         username: userName || "",
         bio: "",
         location: "",
         joinDate: "",
         photoUrl: user.photoURL || null,
+        avatarPhoto: user.photoURL || "",
+        isBlocked: false,
         coverPhoto:
           "https://res.cloudinary.com/dlyfph65r/image/upload/v1753334626/coverDeafault_b5c8od.jpg",
         stats: {
@@ -290,7 +294,13 @@ function RegisterFormContainer({ onSwitchToLogin }) {
       };
 
       try {
-        await createUserProfile(user.uid, profileData);
+        // createUserProfile replaces the whole document, so only call it
+        // when there is no profile yet; otherwise a returning Google user
+        // would lose their circles, connections and interests.
+        const existingProfile = await getUserProfile(user.uid);
+        if (!existingProfile) {
+          await createUserProfile(user.uid, profileData);
+        }
       } catch (profileError) {
         // eslint-disable-next-line no-console
         console.error(

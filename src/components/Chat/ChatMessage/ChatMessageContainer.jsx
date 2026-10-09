@@ -14,6 +14,7 @@ import MessageInfoModalContainer from "../../ui/Modal/MessageInfoModal/MessageIn
 import TypingIndicatorContainer from "../TypingIndicator/TypingIndicatorContainer";
 
 // Utils and Hooks
+import { normalizeMessage } from "../../../utils/chatutils/normalizeMessage";
 import { getMessageRadius } from "../../../utils/chatutils/MessageBorderDir";
 import {
   getUserColor,
@@ -100,10 +101,9 @@ function ChatMessageContainer({ circleId, setReplyTo, setEditingMessage }) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const allMessages = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const allMessages = snapshot.docs.map((doc) =>
+          normalizeMessage({ id: doc.id, ...doc.data() }),
+        );
 
         const filteredMessages = allMessages.filter((msg) => {
           const deletedFor = msg.deletedFor || [];

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import ModalHeading from "../ui/Modal/ModalHeading/ModalHeading";
 import Input from "../ui/Input/Input";
 import SendBtn from "../ui/ReactBits/SendBtn/SendBtn";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase-config";
 import { useParams } from "react-router";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
@@ -94,6 +94,14 @@ export default function EventForm({ event, onClose }) {
         status: "confirmed",
         updatedAt: serverTimestamp(),
       });
+
+      // Events planned on mobile wait in "Pending Confirmation"; move the
+      // active poll forward so both apps show the confirmed event.
+      const pollsSnapshot = await getDocs(collection(db, "circles", circleId, "polls"));
+      const activePoll = pollsSnapshot.docs.find((pollDoc) => !pollDoc.data().archived);
+      if (activePoll && activePoll.data().stage === "Pending Confirmation") {
+        await updateDoc(activePoll.ref, { stage: "Event Confirmed" });
+      }
       onClose();
     } catch (err) {
       console.error("Error updating event:", err);

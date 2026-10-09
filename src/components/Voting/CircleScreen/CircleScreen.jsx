@@ -26,6 +26,7 @@ const PLANNING_STAGES = {
   ACTIVITY_POLL_CLOSED: "Activity Poll Closed",
   PLANNING_PLACE: "Planning the Place",
   PLACE_POLL_CLOSED: "Place Poll Closed",
+  PENDING_CONFIRMATION: "Pending Confirmation",
   EVENT_CONFIRMED: "Event Confirmed",
 };
 
@@ -285,7 +286,6 @@ export default function CircleScreen() {
     }
   };
   const handleDismiss = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPinVisible(false);
   };
 
@@ -321,31 +321,29 @@ export default function CircleScreen() {
         setPollType('place');
         setPollModalVisible(true);
       } else if (currentStage === PLANNING_STAGES.PLACE_POLL_CLOSED) {
-        // Create confirmed event in the subcollection so Mobile is in sync!
+        // Same flow as mobile: the winning plan becomes a pending event that a
+        // circle admin confirms (sets the day) from the events panel.
         const eventsRef = collection(db, 'circles', circleId, 'events');
         await addDoc(eventsRef, {
             title: poll.winningActivity,
             activity: poll.winningActivity,
             location: poll.winningPlace,
             place: poll.winningPlace,
-            status: 'confirmed', // Confirmed directly on web
+            status: 'pending',
             createdAt: serverTimestamp(),
             createdBy: user.uid,
             rsvps: {},
-            day: new Date().toISOString().split('T')[0] // default to today
         });
 
-        // Finalize event and enable RSVPs
         await updateDoc(pollRef, {
-          stage: PLANNING_STAGES.EVENT_CONFIRMED,
-          rsvps: {}, // Initialize empty RSVP object
+          stage: PLANNING_STAGES.PENDING_CONFIRMATION,
+          rsvps: {},
         });
 
-        // Add system message about event confirmation
         const chatRef = collection(db, 'circles', circleId, 'chat');
         await addDoc(chatRef, {
           messageType: 'system',
-          text: `🎉 Event confirmed! ${poll.winningPlace} for ${poll.winningActivity}. Please RSVP above!`,
+          text: `📝 Event "${poll.winningActivity}" is pending confirmation by admins.`,
           timestamp: serverTimestamp(),
           timeStamp: serverTimestamp(),
         });
@@ -394,6 +392,8 @@ export default function CircleScreen() {
       case PLANNING_STAGES.ACTIVITY_POLL_CLOSED:
       case PLANNING_STAGES.PLACE_POLL_CLOSED:
         return "View Results";
+      case PLANNING_STAGES.PENDING_CONFIRMATION:
+        return "View Status";
       case PLANNING_STAGES.EVENT_CONFIRMED:
         return "View Event Details";
       case PLANNING_STAGES.IDLE:

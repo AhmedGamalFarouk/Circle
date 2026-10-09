@@ -56,13 +56,13 @@ export default function CreateCircleModalContainer({ closeModal }) {
   const interestOptions = interests;
 
   const circleTypeOptions = [
-    { value: t("permenent"), label: t("permenent") },
-    { value: t("flash"), label: t("flash") },
+    { value: "permanent", label: t("permenent") },
+    { value: "flash", label: t("flash") },
   ];
 
   const circlePrivacyOptions = [
-    { value: t("public"), label: t("public") },
-    { value: t("private"), label: t("private") },
+    { value: "public", label: t("public") },
+    { value: "private", label: t("private") },
   ];
 
 

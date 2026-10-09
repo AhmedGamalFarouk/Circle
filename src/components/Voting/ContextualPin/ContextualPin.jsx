@@ -64,6 +64,18 @@ const ContextualPin = ({
           />
 
         );
+      case "Pending Confirmation":
+        return (
+          <div className="flex flex-col items-center gap-1 p-4 text-center">
+            <span className="text-primary font-semibold">
+              {eventData?.winningActivity || "Event"}
+              {eventData?.winningPlace ? ` @ ${eventData.winningPlace}` : ""}
+            </span>
+            <span className="text-sm text-secondary">
+              Voting is done. A circle admin confirms the event from the Events panel.
+            </span>
+          </div>
+        );
       case "Event Confirmed":
         return (
           <EventConfirmedState

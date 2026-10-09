@@ -19,6 +19,8 @@ export const updateUserProfile = async (userId, updates) => {
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, {
       ...updates,
+      // Keep the mobile avatar field in sync
+      ...(updates.photoUrl !== undefined ? { avatarPhoto: updates.photoUrl || "" } : {}),
       updatedAt: new Date(),
     });
   } catch (error) {
@@ -34,9 +36,12 @@ export const getUserProfile = async (userId) => {
     const docSnap = await getDoc(userRef);
 
     if (docSnap.exists()) {
+      const data = docSnap.data();
       return {
         id: docSnap.id,
-        ...docSnap.data(),
+        ...data,
+        // Accounts created on mobile store the avatar in avatarPhoto
+        photoUrl: data.photoUrl || data.photoURL || data.avatarPhoto || null,
       };
     } else {
       return null;

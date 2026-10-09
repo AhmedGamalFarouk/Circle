@@ -20,6 +20,7 @@ export const sendStageCreatedMessages = async (circleId, stages) => {
         messageType: "system",
         text: `🔹 ${stageNameMessage}`,
         timestamp: serverTimestamp(),
+        timeStamp: serverTimestamp(),
       });
     }
   } catch (error) {
