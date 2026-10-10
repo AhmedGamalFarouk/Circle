@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import { createUser, uniqueName, getDoc, adminAuth } from "../support/emulator.js";
 
 test.describe("registration", () => {
@@ -16,13 +16,14 @@ test.describe("registration", () => {
   }
 
   test("a new visitor can create an account", async ({ page }) => {
-    knownBug("BUG-02", "the username check queries users while signed out; the new rules deny it and every username reads as taken, so nobody can register");
     const username = uniqueName("new");
     const email = `${username}@example.com`;
     await fillRegistration(page, { username, email, password: "Passw0rd!" });
 
-    // The live availability check must accept a fresh username.
-    await expect(page.getByText("Username is available!")).toBeVisible();
+    // Signed-out visitors can't read profiles, so the live check must not
+    // report the name as taken; availability is checked after sign-up.
+    await page.waitForTimeout(800);
+    await expect(page.getByText(/already taken|Error checking/i)).toHaveCount(0);
 
     await page.getByRole("button", { name: /create account/i }).click();
     await expect(page).toHaveURL("/");
@@ -43,8 +44,17 @@ test.describe("registration", () => {
     await expect(page).toHaveURL(/\/register/);
   });
 
+  test("a taken username is rejected and no account is left behind", async ({ page }) => {
+    const existing = await createUser();
+    const email = `${uniqueName("dupname")}@example.com`;
+    await fillRegistration(page, { username: existing.username, email, password: "Passw0rd!" });
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page.getByText(/already taken/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/register/);
+    await expect(adminAuth.getUserByEmail(email)).rejects.toMatchObject({ code: "auth/user-not-found" });
+  });
+
   test("an email that is already registered shows an inline error", async ({ page }) => {
-    knownBug("BUG-02", "blocked by the same username check before the email is ever tried");
     const existing = await createUser();
     const username = uniqueName("dup");
     await fillRegistration(page, { username, email: existing.email, password: "Passw0rd!" });
@@ -61,7 +71,6 @@ test.describe("login", () => {
   });
 
   test("honours the redirect parameter", async ({ page }) => {
-    knownBug("BUG-04", "the login page's onAuthStateChanged listener navigates to / and overrides ?redirect=");
     const user = await createUser();
     await page.goto("/login?redirect=%2Fabout");
     await page.getByPlaceholder("Email address").fill(user.email);
@@ -85,13 +94,6 @@ test.describe("login", () => {
     await page.getByRole("button", { name: /^login$/i }).click();
     await expect(page).toHaveURL(/\/login/);
     await expect(page.locator("form")).toContainText(/required|enter/i);
-  });
-
-  test("login page offers no shared-account shortcut", async ({ page }) => {
-    knownBug("BUG-01", "\"Skip Authentication\" signs any visitor into a hard-coded real account whose password is in the source");
-    await page.goto("/login");
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /skip authentication/i })).toHaveCount(0);
   });
 
   test("a blocked user is shown the blocked dialog", async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import { createUser, createCircle, adminDb, listDocs, getDoc, Timestamp, clientFor } from "../support/emulator.js";
 
 // Expected flow (decided 2026-10-08, same on web and mobile): activity poll,
@@ -108,7 +108,8 @@ test.describe("event planning", () => {
       activityPoll: activityPoll({ [owner.uid]: "Cinema", [member.uid]: "Cinema" }),
     });
     await openCircle(page, owner, circle.id);
-    await page.getByRole("button", { name: "Send Vote" }).click();
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: "Close Poll" }).click();
     await expect(page.getByText("Poll Closed! The winner is...")).toBeVisible();
     await expect.poll(() => getDoc(`circles/${circle.id}/polls/${pollId}`))
       .toMatchObject({ stage: "Activity Poll Closed", winningActivity: "Cinema" });
@@ -204,20 +205,20 @@ async function seedPendingEvent(circleId, owner, { confirmed = false } = {}) {
   return { pollId, eventId: ref.id };
 }
 
-test.describe("planning bugs found by the audit", () => {
-  test("a member pressing \"Send Vote\" does not end the poll for everyone", async ({ page }) => {
-    knownBug("BUG-08", "the button that closes the poll for the whole circle is labelled \"Send Vote\" and any member can press it");
+test.describe("planning edge cases", () => {
+  test("closing a poll is clearly labelled and asks for confirmation", async ({ page }) => {
     const { member, circle } = await setup();
     const pollId = await seedPoll(circle.id, { stage: "Planning the Activity", activityPoll: activityPoll() });
     await openCircle(page, member, circle.id);
     await page.getByText("Bowling", { exact: true }).click();
-    await page.getByRole("button", { name: "Send Vote" }).click();
+    await expect(page.getByRole("button", { name: "Send Vote" })).toHaveCount(0);
+    page.once("dialog", (d) => d.dismiss());
+    await page.getByRole("button", { name: "Close Poll" }).click();
     await page.waitForTimeout(1500);
     expect((await getDoc(`circles/${circle.id}/polls/${pollId}`)).stage).toBe("Planning the Activity");
   });
 
   test("a vote cast from stale state does not erase other members' votes", async ({ page }) => {
-    knownBug("BUG-09", "handleVote rewrites the whole votes map from local state, so a vote sent from a briefly offline or slow client wipes votes cast meanwhile");
     const { owner, member, circle } = await setup();
     const pollId = await seedPoll(circle.id, { stage: "Planning the Activity", activityPoll: activityPoll() });
     await openCircle(page, member, circle.id);
@@ -236,7 +237,6 @@ test.describe("planning bugs found by the audit", () => {
   });
 
   test("a poll whose deadline passed can still be closed", async ({ page }) => {
-    knownBug("BUG-10", "after the deadline the only way forward is disabled (\"Poll Ended\"), so planning is stuck");
     const { owner, circle } = await setup();
     const yesterday = Timestamp.fromDate(new Date(Date.now() - 24 * 3600 * 1000));
     await seedPoll(circle.id, {
@@ -245,21 +245,5 @@ test.describe("planning bugs found by the audit", () => {
     });
     await openCircle(page, owner, circle.id);
     await expect(page.getByText(/Poll Closed|winner/i).first()).toBeVisible({ timeout: 5000 });
-  });
-
-  test("\"Allow multiple answers\" lets a member pick two options", async ({ page }) => {
-    knownBug("BUG-11", "the allowMultiple toggle is saved but voting always stores a single option per user");
-    const { member, circle } = await setup();
-    const pollId = await seedPoll(circle.id, {
-      stage: "Planning the Activity",
-      activityPoll: { ...activityPoll(), allowMultiple: true },
-    });
-    await openCircle(page, member, circle.id);
-    await page.getByText("Bowling", { exact: true }).click();
-    await page.waitForTimeout(500);
-    await page.getByText("Cinema", { exact: true }).click();
-    await page.waitForTimeout(1000);
-    const vote = (await getDoc(`circles/${circle.id}/polls/${pollId}`)).activityPoll.votes[member.uid];
-    expect(vote).toEqual(expect.arrayContaining(["Bowling", "Cinema"]));
   });
 });

@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import { createUser, createCircle, listDocs, getDoc, uniqueName } from "../support/emulator.js";
 
 // The "+" next to the search box is a plain div with no role or label.
@@ -46,7 +46,6 @@ test.describe("circles", () => {
   });
 
   test("a newly created circle shows up without reloading", async ({ page }) => {
-    knownBug("BUG-05", "My Circles keeps showing the old list after creating a circle until the page is reloaded");
     const owner = await createUser();
     await login(page, owner);
     await page.goto("/circles");
@@ -99,7 +98,6 @@ test.describe("circles", () => {
   });
 
   test("logged-out visitors are sent to login instead of an empty circles page", async ({ page }) => {
-    knownBug("BUG-06", "signed-out /circles renders an empty page; circles can only be read when signed in");
     await page.goto("/circles");
     // Rules only let signed-in users read circles, so the page can't show
     // anything to a visitor. It should say so or redirect, not render blank.
@@ -133,7 +131,6 @@ test.describe("circle access", () => {
   });
 
   test("an unknown circle id shows a not-found state", async ({ page }) => {
-    knownBug("BUG-13", "an unknown circle id shows loading skeletons forever with a live message box");
     const me = await createUser();
     await login(page, me);
     await page.goto("/circles/does-not-exist");

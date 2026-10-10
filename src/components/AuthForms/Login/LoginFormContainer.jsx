@@ -24,13 +24,25 @@ export default function LoginFormContainer({ onSwitchToRegister }) {
     const passwordRef = useRef(null);
 
     const dispatch = useDispatch();
+    // Already signed in: leave the login page, honouring ?redirect=.
+    // Read ?redirect= once on mount: the auth listener and the sign-in
+    // handlers both navigate, and whichever runs second must not see a URL
+    // the first already changed.
+    const [redirect] = useState(
+        () => new URLSearchParams(window.location.search).get("redirect") || "/",
+    );
     useEffect(() => {
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                navigate("/");
+        let active = true;
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user && active) {
+                navigate(redirect, { replace: true });
             }
         });
-    }, [navigate]);
+        return () => {
+            active = false;
+            unsubscribe();
+        };
+    }, [navigate, redirect]);
 
     const handleSignIn = async (e) => {
         e?.preventDefault();
@@ -54,8 +66,6 @@ export default function LoginFormContainer({ onSwitchToRegister }) {
             );
             const token = await userCredential.user.getIdToken();
             dispatch(setUserInfo({ user: userCredential.user, token }));
-            const params = new URLSearchParams(window.location.search);
-            const redirect = params.get("redirect") || "/";
             navigate(redirect, { replace: true });
         } catch (error) {
             console.error("Login error:", error);
@@ -81,8 +91,6 @@ export default function LoginFormContainer({ onSwitchToRegister }) {
             const token = await userCredential.user.getIdToken();
             dispatch(setUserInfo({ user: userCredential.user, token }));
             toast.success("Signed in successfully!");
-            const params = new URLSearchParams(window.location.search);
-            const redirect = params.get("redirect") || "/";
             navigate(redirect, { replace: true });
         } catch (error) {
             console.error("Skip auth login error:", error);

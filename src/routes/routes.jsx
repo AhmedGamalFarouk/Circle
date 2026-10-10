@@ -121,19 +121,21 @@ const routes = createBrowserRouter([
       {
         path: "circles",
         element: (
-          <LazyWrapper>
-            <CirclesPageContainer />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <CirclesPageContainer />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
         path: "circles/:circleId",
         element: (
-          // <ProtectedRoute>
-          <LazyWrapper>
-            <CirclePageContainer />
-          </LazyWrapper>
-          // </ProtectedRoute>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <CirclePageContainer />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
@@ -147,9 +149,11 @@ const routes = createBrowserRouter([
       {
         path: "events",
         element: (
-          <LazyWrapper>
-            <EventsContainer />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <EventsContainer />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
@@ -172,33 +176,41 @@ const routes = createBrowserRouter([
       {
         path: "circles/:circleId/memories",
         element: (
-          <LazyWrapper>
-            <Memories />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <Memories />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
         path: "circles/:circleId/memories/add",
         element: (
-          <LazyWrapper>
-            <MemoryUploadPage />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <MemoryUploadPage />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
         path: "circles-requests",
         element: (
-          <LazyWrapper>
-            <CirclesRequistsContainer />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <CirclesRequistsContainer />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {
         path: "/profile/:profileId",
         element: (
-          <LazyWrapper>
-            <ProfileContainer />
-          </LazyWrapper>
+          <ProtectedRoute>
+            <LazyWrapper>
+              <ProfileContainer />
+            </LazyWrapper>
+          </ProtectedRoute>
         ),
       },
       {

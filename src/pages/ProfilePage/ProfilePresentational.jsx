@@ -18,8 +18,17 @@ const ProfilePresentational = ({
   isConnecting,
   handleReport,
   reported,
-  isReporting
+  isReporting,
+  notFound,
 }) => {
+  if (notFound) {
+    return (
+      <div className="text-text flex min-h-screen flex-col items-center justify-center gap-2">
+        <h1 className="text-2xl font-bold">User not found</h1>
+        <p className="text-text-400">This profile doesn't exist or was deleted.</p>
+      </div>
+    );
+  }
   if (!profileData) {
     return <div>Loading profile...</div>;
   }

@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import { createUser, createCircle } from "../support/emulator.js";
 
 const PUBLIC_PAGES = [
@@ -57,7 +57,6 @@ test.describe("navigation", () => {
   });
 
   test("events page lists the user's upcoming confirmed events", async ({ page }) => {
-    knownBug("BUG-15", "the calendar is built from the localStorage cache of the previous visit; freshly loaded events never reach it");
     const me = await createUser();
     const circle = await createCircle(me);
     const { adminDb, Timestamp } = await import("../support/emulator.js");
@@ -68,13 +67,13 @@ test.describe("navigation", () => {
     });
     await login(page, me);
     await page.goto("/events");
-    await expect(page.getByText("Bowling night").first()).toBeVisible();
+    // Month cells truncate titles ("12:00 AM Bowling ...").
+    await expect(page.getByText(/Bowling/).filter({ visible: true }).first()).toBeVisible();
   });
 });
 
 test.describe("signed-out access", () => {
   test("member-only pages send visitors to login", async ({ page }) => {
-    knownBug("BUG-06", "ProtectedRoute exists but is commented out; signed-out visitors get blank or skeleton pages instead of a login prompt");
     const owner = await createUser();
     const circle = await createCircle(owner);
     for (const path of [`/circles/${circle.id}`, "/circles-requests", `/circles/${circle.id}/memories`]) {

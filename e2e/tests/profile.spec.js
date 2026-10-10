@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import { createUser, createMobileUser, getDoc, listDocs, clientFor } from "../support/emulator.js";
 
 test.describe("profile", () => {
@@ -29,7 +29,6 @@ test.describe("profile", () => {
   });
 
   test("connect sends a request to the other user", async ({ page }) => {
-    knownBug("BUG-03", "updateUserProfile always adds updatedAt, which the new rules forbid on someone else's profile; Connect fails silently but the button says Connected");
     const me = await createUser();
     const other = await createUser();
     await login(page, me);
@@ -40,19 +39,14 @@ test.describe("profile", () => {
   });
 
   test("accepting a connection can update the requester's profile", async () => {
-    knownBug("BUG-03", "same updatedAt problem when NotificationItem writes the requester's connections");
     const me = await createUser();
     const requester = await createUser();
     const c = await clientFor(me);
-    // Exactly what updateUserProfile sends for the requester's side.
-    await c.updateDoc(c.doc(c.db, "users", requester.uid), {
-      connections: [me.uid],
-      updatedAt: new Date(),
-    });
+    // What updateUserProfile sends for the requester's side (no updatedAt).
+    await c.updateDoc(c.doc(c.db, "users", requester.uid), { connections: [me.uid] });
   });
 
   test("reporting a user is recorded", async ({ page }) => {
-    knownBug("BUG-12", "Report writes reportedBy/reports/isBlocked on someone else's profile; the deployed rules deny it and the UI still says Reported");
     const me = await createUser();
     const other = await createUser();
     await login(page, me);
@@ -64,7 +58,6 @@ test.describe("profile", () => {
   });
 
   test("an unknown profile id shows a not-found state", async ({ page }) => {
-    knownBug("BUG-14", "an unknown profile id renders an empty page");
     const me = await createUser();
     await login(page, me);
     await page.goto("/profile/nobody-here");

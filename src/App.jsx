@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import AuthProvider from "../AuthProvider";
 import RoutesPages from "./routes/routes";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { fetchCircles } from "./features/circles/circlesSlice";
 import { fetchUserProfile } from "./features/userProfile/profileSlice";
 import { onAuthStateChanged } from "firebase/auth";
@@ -14,7 +14,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   const dispatch = useDispatch();
-  const status = useSelector((state) => state.circles.status);
   const blockedModalRef = useRef();
   const [isUserBlocked, setIsUserBlocked] = React.useState(false);
   const { user } = useAuth();
@@ -23,11 +22,12 @@ function App() {
     dispatch(fetchUserProfile(user?.uid));
   }, [dispatch, user?.uid]);
 
+  // Circles are only readable when signed in, so (re)load them per user.
   useEffect(() => {
-    if (status === "idle") {
+    if (user?.uid) {
       dispatch(fetchCircles());
     }
-  }, [dispatch, status]);
+  }, [dispatch, user?.uid]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

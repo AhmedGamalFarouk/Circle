@@ -91,6 +91,7 @@ const circlesSlice = createSlice({
         circles: [],
         status: 'idle',
         selectedCircle: null,
+        selectedCircleStatus: 'idle',
         error: null,
     },
     reducers: {
@@ -118,17 +119,19 @@ const circlesSlice = createSlice({
             })
 
             //  fetchCircleById
+            // Tracked apart from the list status so a missing circle doesn't
+            // look like a failed list load (and vice versa).
             .addCase(fetchCircleById.pending, (state) => {
-                state.status = 'loading';
+                state.selectedCircleStatus = 'loading';
                 state.error = null;
                 state.selectedCircle = null;
             })
             .addCase(fetchCircleById.fulfilled, (state, action) => {
-                state.status = 'succeeded';
+                state.selectedCircleStatus = 'succeeded';
                 state.selectedCircle = action.payload;
             })
             .addCase(fetchCircleById.rejected, (state, action) => {
-                state.status = 'failed';
+                state.selectedCircleStatus = 'failed';
                 state.error = action.error.message;
             });
     },

@@ -1,6 +1,6 @@
 import { test, expect, login, knownBug } from "../support/fixtures.js";
 import {
-  createUser, createMobileUser, createCircle, listDocs, getDoc, adminDb, Timestamp, uniqueName, clientFor,
+  createUser, createMobileUser, createCircle, addMember, listDocs, getDoc, adminDb, Timestamp, uniqueName, clientFor,
 } from "../support/emulator.js";
 
 const requestsFor = async (circleId) =>
@@ -71,14 +71,11 @@ test.describe("joining circles", () => {
   });
 
   test("a co-admin also sees join requests for the circle", async ({ page }) => {
-    knownBug("BUG-07", "join requests are addressed only to the owner (approverId), so co-admins never see them");
     const owner = await createUser();
     const coAdmin = await createUser();
     const joiner = await createUser();
     const circle = await createCircle(owner, {}, []);
-    await adminDb.doc(`circles/${circle.id}/members/${coAdmin.uid}`).set({
-      username: coAdmin.username, isAdmin: true, isOwner: false,
-    });
+    await addMember(circle.id, coAdmin, { isAdmin: true });
     await adminDb.collection("circleRequests").add({
       type: "join-request", circleId: circle.id, circleName: circle.circleName,
       requesterId: joiner.uid, requesterUsername: joiner.username,

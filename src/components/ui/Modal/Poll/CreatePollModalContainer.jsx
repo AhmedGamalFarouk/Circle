@@ -8,7 +8,6 @@ export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
 
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
-  const [allowMultiple, setAllowMultiple] = useState(false);
   const [expireDate, setExpireDate] = useState(
     new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
@@ -52,7 +51,8 @@ export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
       options: filledOptions.map((text) => ({ text })),
       deadline: new Date(expireDate).toISOString(),
       createdAt: new Date().toISOString(),
-      allowMultiple,
+      // Both apps store one vote per member, so multi-answer isn't offered.
+      allowMultiple: false,
       allowNewOptions: true,
       pollType,
     };
@@ -66,8 +66,6 @@ export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
       setQuestion={setQuestion}
       options={options}
       onOptionChange={onOptionChange}
-      allowMultiple={allowMultiple}
-      setAllowMultiple={setAllowMultiple}
       expireDate={expireDate}
       setExpireDate={setExpireDate}
       onAskAi={handleAskAi}

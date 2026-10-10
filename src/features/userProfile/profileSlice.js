@@ -6,6 +6,7 @@ const INITIAL_STATE = {
   error: null,
   profile: null,
   viewedProfile: null,
+  viewedProfileStatus: "idle",
 };
 
 export const fetchUserProfile = createAsyncThunk(
@@ -34,6 +35,7 @@ export const fetchViewedProfile = createAsyncThunk(
   async (profileId, thunkAPI) => {
     try {
       const profile = await getUserProfile(profileId);
+      if (!profile) return thunkAPI.rejectWithValue("not-found");
       const transformedProfile = {
         ...profile,
         createdAt: profile.createdAt?.toDate?.()
@@ -85,15 +87,20 @@ const profileSlice = createSlice({
       .addCase(fetchViewedProfile.pending, (state) => {
         state.status = "loading";
         state.error = null;
+        // Don't show the previously viewed person while loading someone else.
+        state.viewedProfile = null;
+        state.viewedProfileStatus = "loading";
       })
       .addCase(fetchViewedProfile.fulfilled, (state, action) => {
         state.viewedProfile = action.payload;
         state.status = "succeeded";
         state.error = null;
+        state.viewedProfileStatus = "succeeded";
       })
       .addCase(fetchViewedProfile.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload || action.error.message;
+        state.viewedProfileStatus = "failed";
       });
   },
 });
