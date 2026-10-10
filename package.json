@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test\"",
+    "test:e2e:ui": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test --ui\"",
+    "e2e:emulators": "firebase emulators:start --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -71,6 +74,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@playwright/test": "^1.56.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react-swc": "^3.10.2",
@@ -78,6 +82,8 @@
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "firebase-admin": "^13.10.0",
+    "firebase-tools": "^14.27.0",
     "globals": "^16.2.0",
     "postcss": "^8.5.6",
     "prettier-plugin-tailwindcss": "^0.6.14",

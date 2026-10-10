@@ -179,14 +179,12 @@ export default function CircleScreen() {
   const handleVote = async (option) => {
     if (!poll?.id || !userProfile) return;
     const pollRef = doc(db, "circles", circleId, "polls", poll.id);
+    // Write only this user's entry so votes cast meanwhile by others (seen
+    // late by a slow client) are not overwritten.
     if (currentStage === PLANNING_STAGES.PLANNING_ACTIVITY) {
-      await updateDoc(pollRef, {
-        "activityPoll.votes": { ...poll.activityPoll.votes, [user.uid]: option },
-      });
+      await updateDoc(pollRef, { [`activityPoll.votes.${user.uid}`]: option });
     } else if (currentStage === PLANNING_STAGES.PLANNING_PLACE) {
-      await updateDoc(pollRef, {
-        "placePoll.votes": { ...poll.placePoll.votes, [user.uid]: option },
-      });
+      await updateDoc(pollRef, { [`placePoll.votes.${user.uid}`]: option });
     }
   };
 
@@ -285,6 +283,24 @@ export default function CircleScreen() {
       console.error("Error finishing voting:", error);
     }
   };
+  // Close the poll once its deadline passes, as mobile does; otherwise a
+  // poll nobody closed in time would block planning forever.
+  const activeDeadline =
+    currentStage === PLANNING_STAGES.PLANNING_ACTIVITY
+      ? poll?.activityPoll?.deadline
+      : currentStage === PLANNING_STAGES.PLANNING_PLACE
+        ? poll?.placePoll?.deadline
+        : null;
+  useEffect(() => {
+    if (!activeDeadline?.toDate) return;
+    const msLeft = activeDeadline.toDate().getTime() - Date.now();
+    // setTimeout fires at once for delays past ~24.8 days; check again later.
+    if (msLeft > 2 ** 31 - 1) return;
+    const timer = setTimeout(() => handleFinishVoting(), Math.max(msLeft, 0));
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDeadline?.seconds, currentStage, poll?.id]);
+
   const handleDismiss = () => {
     setPinVisible(false);
   };

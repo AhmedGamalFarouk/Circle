@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useParams } from "react-router";
-import {  doc, updateDoc, arrayUnion, getDoc, increment } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import { auth ,db } from "../../firebase-config";
 import { getUserInfo } from "../../features/user/userSlice";
 import ProfilePresentational from "./ProfilePresentational";
@@ -23,6 +23,8 @@ const ProfileContainer = () => {
       : state.userProfile.viewedProfile,
   );
 
+  const viewedProfileStatus = useSelector((state) => state.userProfile.viewedProfileStatus);
+  const notFound = auth.currentUser?.uid !== profileId && viewedProfileStatus === "failed";
   const [isConnected, setIsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
   const [showEditMode, setShowEditMode] = useState(false);
@@ -112,65 +114,31 @@ const ProfileContainer = () => {
 
  
 
-// Check if user already reported 
+// Reports are kept on the reporter's own profile; the reported user only
+// gets their `reported` counter bumped by one (all the rules allow, and the
+// field mobile uses). Blocking is left to app admins.
+const reportedUsers = useSelector((state) => state.userProfile.profile?.reportedUsers);
 useEffect(() => {
-  if (!profile?.reportedBy || !userInfo?.uid) {
-    setReported(false);
-    return;
-  }
+  setReported(!!reportedUsers?.includes(profileId));
+}, [reportedUsers, profileId]);
 
-  const isCurrentUserReported = profile.reportedBy.some(
-    (reporter) =>
-      (typeof reporter === "object" ? reporter.uid : reporter) === userInfo.uid
-  );
-
-  setReported(isCurrentUserReported);
-}, [profile?.reportedBy, userInfo?.uid]);
-
-// Handle report/unreport
 const handleReport = async () => {
-  if (isReporting) return;
+  if (isReporting || reported || !userInfo?.uid) return;
 
   setIsReporting(true);
-
   try {
-    const currentReports = profile.reportedBy || [];
-    let updatedReports;
-
-    if (reported) {
-      // User already reported → remove report (if you want toggle)
-      updatedReports = currentReports.filter((r) => {
-        const reporterId = typeof r === "object" ? r.uid : r;
-        return reporterId !== userInfo.uid;
-      });
-      setReported(false);
-    } else {
-      // Add report
-      updatedReports = [...currentReports, userInfo.uid];
-      setReported(true);
-    }
-
-    // Check if user should be blocked
-    const shouldBlock = updatedReports.length >= 2;
-
-    // Update user document
-    await updateUserProfile(profileId, {
-      reportedBy: updatedReports,
-      reports: updatedReports.length,
-      ...(shouldBlock && { isBlocked: true }), // add isBlocked when >= 2
+    await updateDoc(doc(db, "users", profileId), { reported: increment(1) });
+    await updateDoc(doc(db, "users", userInfo.uid), {
+      reportedUsers: arrayUnion(profileId),
     });
-
-    // Refresh profile data
-    dispatch(fetchViewedProfile(profileId));
+    setReported(true);
+    dispatch(fetchUserProfile(userInfo.uid));
   } catch (error) {
     console.error("Error reporting user:", error);
-    setReported(!reported);
   } finally {
     setIsReporting(false);
   }
 };
-
-
 
   return (
     <ProfilePresentational
@@ -178,6 +146,7 @@ const handleReport = async () => {
         showMobileMenu,
         setShowMobileMenu,
         profileData: profile,
+        notFound,
         isProfileMyProfile,
         isConnected,
         handleConnect,

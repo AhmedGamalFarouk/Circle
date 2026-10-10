@@ -67,7 +67,9 @@ function RegisterFormContainer({ onSwitchToLogin }) {
       setUsernameValidation((prev) => ({ ...prev, isChecking: true }));
 
       try {
-        const validation = await validateUsername(userName);
+        const validation = await validateUsername(userName, {
+          checkAvailability: !!auth.currentUser,
+        });
         setUsernameValidation({
           isValid: validation.isValid,
           message: validation.message,
@@ -176,10 +178,11 @@ function RegisterFormContainer({ onSwitchToLogin }) {
     setIsLoading(true);
 
     try {
-      // Validate username availability before creating account
-      const usernameValidationResult = await validateUsername(userName);
-      if (!usernameValidationResult.isValid) {
-        setErrors({ username: usernameValidationResult.message });
+      const usernameFormat = await validateUsername(userName, {
+        checkAvailability: false,
+      });
+      if (!usernameFormat.isValid) {
+        setErrors({ username: usernameFormat.message });
         setIsLoading(false);
         return;
       }
@@ -190,6 +193,22 @@ function RegisterFormContainer({ onSwitchToLogin }) {
         passwordValue,
       );
       const user = userCredential.user;
+
+      // Profiles can only be queried once signed in, so check the username
+      // now and undo the account if it is taken.
+      let usernameResult;
+      try {
+        usernameResult = await validateUsername(userName);
+      } catch (availabilityError) {
+        await user.delete();
+        throw availabilityError;
+      }
+      if (!usernameResult.isValid) {
+        await user.delete();
+        setErrors({ username: usernameResult.message });
+        setIsLoading(false);
+        return;
+      }
       const token = await user.getIdToken();
 
       // Create user profile in Firestore for email/password signup
@@ -198,7 +217,8 @@ function RegisterFormContainer({ onSwitchToLogin }) {
         email: user.email,
         provider: "email",
         emailVerified: user.emailVerified,
-        username: userName || "",
+        // Stored lowercase like mobile, so the availability check matches
+        username: userName.trim().toLowerCase(),
         age: userAge || null,
         bio: "",
         location: location || "",

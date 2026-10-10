@@ -1,6 +1,4 @@
-import ShinyText from "../../ReactBits/ShinyText/ShinyText";
 import Input from "../../Input/Input";
-import Toggle from "../../ReactBits/Toggle/Toggle";
 import SendBtn from "../../ReactBits/SendBtn/SendBtn";
 import AiButton from "../../Buttons/AiButton";
 import ModalHeading from "../ModalHeading/ModalHeading";
@@ -9,8 +7,6 @@ export default function CreatePollModalPresentational({
   setQuestion,
   options,
   onOptionChange,
-  allowMultiple,
-  setAllowMultiple,
   expireDate,
   setExpireDate,
   onAskAi,
@@ -65,20 +61,6 @@ export default function CreatePollModalPresentational({
               />
             ))}
           </div>
-        </div>
-
-        {/* Toggle */}
-        <div className="flex items-center justify-between">
-          <ShinyText
-            text={t("Allow multiple answers!")}
-            disabled={false}
-            speed={3}
-            className="custom-class text-primary"
-          />
-          <Toggle
-            checked={allowMultiple}
-            onChange={(e) => setAllowMultiple(e.target.checked)}
-          />
         </div>
 
         {/* Expiration Date */}
