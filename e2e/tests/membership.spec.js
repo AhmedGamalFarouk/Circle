@@ -1,4 +1,4 @@
-import { test, expect, login, knownBug } from "../support/fixtures.js";
+import { test, expect, login } from "../support/fixtures.js";
 import {
   createUser, createMobileUser, createCircle, addMember, listDocs, getDoc, adminDb, Timestamp, uniqueName, clientFor,
 } from "../support/emulator.js";
@@ -111,13 +111,23 @@ test.describe("joining circles", () => {
   });
 
   test("a non-member cannot add themselves to a private circle", async () => {
-    knownBug("BUG-RULES", "rules let anyone create their own member doc, so private circles can be self-joined");
     const owner = await createUser();
+    const invitee = await createUser();
     const outsider = await createUser();
     const circle = await createCircle(owner, { circlePrivacy: "private" });
+    const invitation = await adminDb.collection("circleRequests").add({
+      type: "invitation",
+      circleId: circle.id,
+      inviterId: owner.uid,
+      invitedUserId: invitee.uid,
+      status: "pending",
+    });
     const c = await clientFor(outsider);
+    const ownDoc = c.doc(c.db, "circles", circle.id, "members", outsider.uid);
+    await expect(c.setDoc(ownDoc, { username: outsider.username })).rejects.toMatchObject({ code: "permission-denied" });
+    // Someone else's invitation doesn't let you in either.
     await expect(
-      c.setDoc(c.doc(c.db, "circles", circle.id, "members", outsider.uid), { username: outsider.username }),
+      c.setDoc(ownDoc, { username: outsider.username, invitationId: invitation.id }),
     ).rejects.toMatchObject({ code: "permission-denied" });
   });
 

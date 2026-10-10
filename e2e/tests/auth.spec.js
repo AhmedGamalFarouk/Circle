@@ -79,6 +79,23 @@ test.describe("login", () => {
     await expect(page).toHaveURL(/\/about$/);
   });
 
+  test("Skip Authentication signs in as the demo account", async ({ page }) => {
+    // Matches VITE_DEMO_EMAIL / VITE_DEMO_PASSWORD in .env.e2e.
+    const email = "demo@example.com";
+    const existing = await adminAuth.getUserByEmail(email).catch(() => null);
+    const uid = existing
+      ? existing.uid
+      : (await createUser({ email, password: "DemoPassw0rd!", username: uniqueName("demo") })).uid;
+    const { username } = await getDoc(`users/${uid}`);
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Skip Authentication" }).click();
+    await expect(page).toHaveURL("/");
+    // Your own profile has no Connect button.
+    await page.goto(`/profile/${uid}`);
+    await expect(page.getByText(`@${username}`)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Connect", exact: true })).toHaveCount(0);
+  });
+
   test("wrong password shows an error and stays on login", async ({ page }) => {
     const user = await createUser();
     await page.goto("/login");

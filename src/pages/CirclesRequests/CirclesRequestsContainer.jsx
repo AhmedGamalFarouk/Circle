@@ -90,8 +90,14 @@ function CirclesRequistsContainer() {
                 isOwner: false,
                 photoUrl: request.invitedUserPhotoUrl,
                 username: request.invitedUserUsername,
+                // The rules only let you add yourself by naming the pending
+                // invitation you were sent.
+                invitationId: request.id,
             };
         }
+        // Mobile finds members by userId.
+        memberData.userId = memberId;
+        memberData.joinedAt = new Date();
 
         const circleRef = doc(db, "circles", request.circleId);
         const circleSnap = await getDoc(circleRef);

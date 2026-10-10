@@ -107,15 +107,24 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read: if signedIn();
 
-        // Admins add/promote/remove anyone. A user may add themselves (joining
-        // a public circle or accepting an invitation), never as admin/owner.
-        // Known gap: rules can't look up the invitation, so a user could
-        // self-join a private circle. Moving invitation acceptance into a
-        // callable function closes it.
+        // Admins add/promote/remove anyone. Anyone else may only add
+        // themselves, as a plain member, by naming a pending invitation to
+        // this circle that was sent to them (invitationId on the member doc).
+        // Join requests are always added by an admin.
+        function acceptsInvitation() {
+          let invitation = get(/databases/$(database)/documents/circleRequests/$(request.resource.data.invitationId)).data;
+          return invitation.type == 'invitation'
+            && invitation.circleId == circleId
+            && invitation.invitedUserId == request.auth.uid
+            && invitation.get('status', 'pending') == 'pending';
+        }
+
         allow create: if isCircleAdmin(circleId)
           || (isSelf(memberId)
               && request.resource.data.get('isAdmin', false) == false
-              && request.resource.data.get('isOwner', false) == false);
+              && request.resource.data.get('isOwner', false) == false
+              && request.resource.data.invitationId is string
+              && acceptsInvitation());
         allow update: if isCircleAdmin(circleId)
           || (isSelf(memberId) && !changedKeys().hasAny(['isAdmin', 'isOwner']));
         // Leaving a circle, or an admin removing someone.
@@ -182,7 +191,12 @@ service cloud.firestore {
                 && isMember(request.resource.data.circleId)));
 
       // Admins decide join requests; the invitee answers an invitation.
-      allow update, delete: if signedIn()
+      // Who and which circle a request is about never changes, so an
+      // invitation can't be pointed at another circle before accepting it.
+      allow update: if signedIn()
+        && (isCircleAdmin(resource.data.circleId) || involved(resource.data))
+        && !changedKeys().hasAny(['type', 'circleId', 'requesterId', 'invitedUserId', 'inviterId']);
+      allow delete: if signedIn()
         && (isCircleAdmin(resource.data.circleId) || involved(resource.data));
     }
 

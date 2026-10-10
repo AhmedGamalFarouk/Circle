@@ -33,7 +33,7 @@ and videos of any failure.
 
 | Path | What it is |
 | --- | --- |
-| `e2e/firebase/` | Emulator config plus a copy of `firestore.rules` and `database.rules.json` from Circle-mobile (commit `3f4d5ca`). Copy them again whenever the mobile rules change. |
+| `e2e/firebase/` | Emulator config plus a copy of `firestore.rules` and `database.rules.json` from Circle-mobile (`claude/project-thread-cy7tq3`, invitation-only self-join). Copy them again whenever the mobile rules change. |
 | `e2e/support/emulator.js` | Seeding and inspection through the Admin SDK (bypasses rules), plus `clientFor(user)` for checks that must go through the rules. |
 | `e2e/support/fixtures.js` | The `page` fixture (offline stubbing, error capture), `login()` and `knownBug()`. |
 | `e2e/tests/*.spec.js` | Auth, circles, membership, chat, event planning, profile, smoke and phone-size tests. |
@@ -47,15 +47,16 @@ passing, Playwright reports it as "expected to fail, but passed", and the
 `knownBug(...)` line should be deleted. Run `E2E_STRICT=1 npm run test:e2e` to
 see their real failures.
 
-| ID | Bug |
-| --- | --- |
-| BUG-RULES | Any signed-in user can create their own member doc in a private circle. Closing it needs invitation acceptance in a callable function plus a rules change. |
+No known bugs are open right now.
 
-The audit's other findings were fixed alongside this suite and are now covered
+The audit's findings were fixed alongside this suite and are now covered
 by ordinary tests: registration under the new rules, cross-user profile writes
 (Connect, accepting connections, Report), the login redirect, route
 protection, circle and profile not-found pages, My Circles refresh, co-admin
 join requests, the poll close button, lost votes, polls stuck after their
-deadline, and the Events calendar.
+deadline, the Events calendar, and private circles that anyone could join
+(the rules now require a pending invitation).
 
-The "Skip Authentication" demo button on the login page is kept on purpose.
+The "Skip Authentication" button signs in to a dedicated demo account
+(`src/utils/demoAccount.js`). In e2e mode `.env.e2e` points it at a user the
+auth test creates.

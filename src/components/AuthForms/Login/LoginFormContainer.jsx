@@ -8,6 +8,7 @@ import {
     signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../../../firebase-config";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "../../../utils/demoAccount";
 // components
 import LoginFormPresentational from './LoginFormPresentational';
 import { setUserInfo } from "../../../features/user/userSlice";
@@ -85,8 +86,8 @@ export default function LoginFormContainer({ onSwitchToRegister }) {
         try {
             const userCredential = await signInWithEmailAndPassword(
                 auth,
-                "ahmedgamal5565@gmail.com",
-                "123456"
+                DEMO_EMAIL,
+                DEMO_PASSWORD
             );
             const token = await userCredential.user.getIdToken();
             dispatch(setUserInfo({ user: userCredential.user, token }));
