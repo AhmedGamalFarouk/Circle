@@ -56,8 +56,9 @@ test.describe("event planning", () => {
     await modal.locator("button").last().click();
 
     await expect(page.getByText("What should we do?").first()).toBeVisible();
+    // The UI renders from the local cache before the write reaches the emulator.
+    await expect.poll(async () => (await listDocs(`circles/${circle.id}/polls`)).length).toBe(1);
     const polls = await listDocs(`circles/${circle.id}/polls`);
-    expect(polls).toHaveLength(1);
     expect(polls[0]).toMatchObject({
       stage: "Planning the Activity",
       activityPoll: expect.objectContaining({ question: "What should we do?", options: [{ text: "Bowling" }, { text: "Cinema" }] }),
