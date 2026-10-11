@@ -1,6 +1,5 @@
 import Input from "../../Input/Input";
 import SendBtn from "../../ReactBits/SendBtn/SendBtn";
-import AiButton from "../../Buttons/AiButton";
 import ModalHeading from "../ModalHeading/ModalHeading";
 export default function CreatePollModalPresentational({
   question,
@@ -9,7 +8,6 @@ export default function CreatePollModalPresentational({
   onOptionChange,
   expireDate,
   setExpireDate,
-  onAskAi,
   onSubmit,
   onClose,
   t,
@@ -35,21 +33,9 @@ export default function CreatePollModalPresentational({
 
         {/* Options */}
         <div>
-          <div className="flex items-center justify-between">
-            <label className="text-primary mb-2 block text-lg font-medium">
-              {t("Options *")}
-            </label>
-
-            <div
-              className="flex cursor-pointer items-center gap-x-2"
-              onClick={onAskAi}
-            >
-              <AiButton />
-              <span className="from-secondary to-primary bg-gradient-to-l bg-clip-text py-1 ps-2 font-bold text-transparent">
-                Ask AI
-              </span>
-            </div>
-          </div>
+          <label className="text-primary mb-2 block text-lg font-medium">
+            {t("Options *")}
+          </label>
 
           <div className="space-y-1">
             {options.map((option, index) => (

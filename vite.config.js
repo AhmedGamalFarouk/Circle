@@ -42,9 +42,7 @@ export default defineConfig({
             './src/pages/Memories/AddMemories.jsx'
           ],
           'payment-pages': [
-            './src/pages/Payments/PaymentContainer',
-            './src/pages/Payments/Success',
-            './src/pages/Payments/Cancel'
+            './src/pages/Payments/PaymentContainer'
           ],
           'chat-components': [
             './src/components/Chat/ChatWindow/ChatWindowContainer.jsx',
