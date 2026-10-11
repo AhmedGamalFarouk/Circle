@@ -2,6 +2,7 @@ import { useState, useRef, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase-config";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "../../utils/demoAccount";
 import { useDispatch } from "react-redux";
 import { setUserInfo } from "../../features/user/userSlice";
 import { toast } from "react-toastify";
@@ -29,8 +30,8 @@ function LandingContainer() {
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        "ahmedgamal5565@gmail.com",
-        "123456"
+        DEMO_EMAIL,
+        DEMO_PASSWORD
       );
       const token = await userCredential.user.getIdToken();
       dispatch(setUserInfo({ user: userCredential.user, token }));

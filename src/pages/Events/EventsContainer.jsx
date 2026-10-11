@@ -8,6 +8,7 @@ import {
 } from "@schedule-x/calendar";
 import { createEventModalPlugin } from "@schedule-x/event-modal";
 import { createDragAndDropPlugin } from "@schedule-x/drag-and-drop";
+import { createEventsServicePlugin } from "@schedule-x/events-service";
 import "@schedule-x/theme-shadcn/dist/index.css";
 import EventsPresentional from "./EventsPresentional";
 import { db } from "../../firebase-config";
@@ -28,15 +29,11 @@ export default function EventsContainer() {
   useEffect(() => {}, [darkMode]);
   const [isDark, setDark] = useState(!darkMode);
 
-  const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem("userEvents");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [calendars, setCalendars] = useState(() => {
-    const saved = localStorage.getItem("userCalendars");
-    return saved ? JSON.parse(saved) : {};
-  });
+  // No localStorage cache: it showed the previous visit's (or previous
+  // account's) events, and the calendar never picked up fresh ones.
+  const [events, setEvents] = useState([]);
+  const [calendars, setCalendars] = useState({});
+  const [eventsService] = useState(() => createEventsServicePlugin());
 
   const [loading, setLoading] = useState(true);
 
@@ -64,21 +61,30 @@ export default function EventsContainer() {
       setLoading(true);
 
       try {
-        const circlesRef = collection(db, "circles");
-        const circlesSnap = await getDocs(circlesRef);
+        // Only the user's own circles, read in parallel, instead of every
+        // circle in the database one by one.
+        const userSnap = await getDoc(doc(db, "users", userId));
+        const joinedIds = userSnap.exists() ? userSnap.data().joinedCircles || [] : [];
+        const circleDocs = (
+          await Promise.all(
+            joinedIds.map(async (circleId) => {
+              const [circleSnap, memberSnap] = await Promise.all([
+                getDoc(doc(db, "circles", circleId)),
+                getDoc(doc(db, "circles", circleId, "members", userId)),
+              ]);
+              if (!circleSnap.exists() || !memberSnap.exists()) return null;
+              const eventsSnap = await getDocs(collection(db, "circles", circleId, "events"));
+              return { circleDoc: circleSnap, eventsSnap };
+            }),
+          )
+        ).filter(Boolean);
 
         const fetchedCalendars = {};
         let allEvents = [];
 
-        for (const circleDoc of circlesSnap.docs) {
+        for (const { circleDoc, eventsSnap } of circleDocs) {
           const circleId = circleDoc.id;
           const circleData = circleDoc.data();
-
-          // Check if user is a member
-          const memberRef = doc(db, "circles", circleId, "members", userId);
-          const memberSnap = await getDoc(memberRef);
-
-          if (!memberSnap.exists()) continue;
 
           // Build calendar info
           if (!fetchedCalendars[circleId]) {
@@ -92,11 +98,12 @@ export default function EventsContainer() {
 
           const calendarInfo = fetchedCalendars[circleId];
 
-          // Fetch events inside the circle
-          const eventsRef = collection(db, "circles", circleId, "events");
-          const eventsSnap = await getDocs(eventsRef);
-
-          const circleEvents = eventsSnap.docs.map((docSnap) => {
+          // Pending events have no day yet; rejected ones aren't happening.
+          const scheduledDocs = eventsSnap.docs.filter((docSnap) => {
+            const status = docSnap.data().status;
+            return !status || status === "confirmed";
+          });
+          const circleEvents = scheduledDocs.map((docSnap) => {
             const data = docSnap.data();
             let startDate = new Date();
             if (data.day instanceof Timestamp) startDate = data.day.toDate();
@@ -128,8 +135,6 @@ export default function EventsContainer() {
         setEvents(allEvents);
         setCalendars(fetchedCalendars);
 
-        localStorage.setItem("userEvents", JSON.stringify(allEvents));
-        localStorage.setItem("userCalendars", JSON.stringify(fetchedCalendars));
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
@@ -154,10 +159,16 @@ export default function EventsContainer() {
     ],
     defaultView: "Month",
     selectedDates: new Date().toISOString().slice(0, 10),
-    plugins: [createEventModalPlugin(), createDragAndDropPlugin()],
+    plugins: [createEventModalPlugin(), createDragAndDropPlugin(), eventsService],
     calendars,
     events,
   });
+
+  // The calendar only reads `events` when it is created, so push updates.
+  // Runs after the calendar (a child) has mounted and initialised the plugin.
+  useEffect(() => {
+    if (!loading) eventsService.set(events);
+  }, [eventsService, events, loading]);
 
   if (loading && !events.length) {
     return (

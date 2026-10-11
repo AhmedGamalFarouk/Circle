@@ -1,7 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { getDatabase } from "firebase/database";
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, doc, getDoc, connectFirestoreEmulator } from "firebase/firestore";
+import { getDatabase, connectDatabaseEmulator } from "firebase/database";
+
+// End-to-end tests run against local Firebase emulators, never live data.
+// Set VITE_USE_FIREBASE_EMULATORS=true (see .env.e2e) to enable.
+const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
+const emulatorProjectId = "demo-circle";
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -14,10 +19,23 @@ const firebaseConfig = {
   appId: "1:141731835688:web:69bd763eeda258b0eb6a1d",
 };
 
+if (useEmulators) {
+  // "demo-" projects never reach production services.
+  firebaseConfig.projectId = emulatorProjectId;
+  firebaseConfig.authDomain = `${emulatorProjectId}.firebaseapp.com`;
+  firebaseConfig.databaseURL = `https://${emulatorProjectId}-default-rtdb.firebaseio.com`;
+}
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const database = getDatabase(app); // Export Realtime Database
 export const auth = getAuth(app);
+
+if (useEmulators) {
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  connectDatabaseEmulator(database, "127.0.0.1", 9000);
+}
 export const GoogleProvider = new GoogleAuthProvider();
 
 export async function checkIfBlocked(user) {

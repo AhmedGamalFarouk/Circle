@@ -56,7 +56,7 @@ const AuthProvider = ({ children }) => {
         dispatch(clearUserInfo());
       }
     });
-    dispatch(setAuthLoading(false));
+    // setUserInfo/clearUserInfo end the loading state once Firebase answers.
     return () => unsubscribe();
   }, [dispatch]);
 

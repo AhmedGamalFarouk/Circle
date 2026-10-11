@@ -8,9 +8,13 @@ const AboutTab = ({ uid, interests }) => {
 
   const handleAddInterest = async () => {
     if (!newInterest.trim()) return;
-    await updateUserProfile(uid, {
-      interests: [...interests, newInterest.trim()],
-    });
+    try {
+      await updateUserProfile(uid, {
+        interests: [...interests, newInterest.trim()],
+      });
+    } catch {
+      return;
+    }
     setNewInterest("");
     setIsAdding(false);
   };

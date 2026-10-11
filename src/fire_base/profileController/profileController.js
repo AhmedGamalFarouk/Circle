@@ -1,6 +1,6 @@
 // firebase/profileFunctions.js
 import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase-config";
+import { auth, db } from "../../firebase-config";
 
 export const createUserProfile = async (userId, profileData) => {
   try {
@@ -21,10 +21,14 @@ export const updateUserProfile = async (userId, updates) => {
       ...updates,
       // Keep the mobile avatar field in sync
       ...(updates.photoUrl !== undefined ? { avatarPhoto: updates.photoUrl || "" } : {}),
-      updatedAt: new Date(),
+      // The rules only let other users touch relationship fields on a
+      // profile (connections, joinedCircles...), so only stamp our own.
+      ...(auth.currentUser?.uid === userId ? { updatedAt: new Date() } : {}),
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
+    // Callers revert optimistic UI on failure, so don't swallow it.
+    throw error;
   }
 };
 

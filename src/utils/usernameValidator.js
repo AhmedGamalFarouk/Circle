@@ -26,8 +26,8 @@ export async function isUsernameAvailable(username) {
         return querySnapshot.empty;
     } catch (error) {
         console.error("Error checking username availability:", error);
-        // In case of error, assume username is not available for safety
-        return false;
+        // Let the caller decide; a failed check is not the same as "taken".
+        throw error;
     }
 }
 
@@ -36,7 +36,7 @@ export async function isUsernameAvailable(username) {
  * @param {string} username - The username to validate
  * @returns {Promise<Object>} - Returns validation result with isValid and message
  */
-export async function validateUsername(username) {
+export async function validateUsername(username, { checkAvailability = true } = {}) {
     const trimmedUsername = username?.trim();
 
     // Check basic format requirements
@@ -76,6 +76,12 @@ export async function validateUsername(username) {
             isValid: false,
             message: "Username must start with a letter or number."
         };
+    }
+
+    // Profiles are only readable when signed in, so a visitor who is still
+    // registering can only get the format checked.
+    if (!checkAvailability) {
+        return { isValid: true, message: "" };
     }
 
     // Check availability in database

@@ -1,0 +1,208 @@
+rules_version = '2';
+
+// Security rules for the shared Circle backend (web + mobile).
+//
+// Model:
+// - Any signed-in user can read profiles and circle docs (search, explore,
+//   join requests need them).
+// - Circle content (chat, polls, events, memories, typing) is members-only.
+//   A member is anyone with circles/{circleId}/members/{uid}.
+// - "Circle admin" = the circle's creator or a member doc with isAdmin/isOwner.
+// - Cloud Functions use the Admin SDK and bypass these rules.
+//
+// Both apps still write some fields on other users' profiles (joinedCircles,
+// connections, stats). Those cross-user writes are limited to that
+// allow-list below.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function onlyChanges(keys) {
+      return changedKeys().hasOnly(keys);
+    }
+
+    function isAppAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
+    }
+
+    function circlePath(circleId) {
+      return /databases/$(database)/documents/circles/$(circleId);
+    }
+
+    function memberPath(circleId, uid) {
+      return /databases/$(database)/documents/circles/$(circleId)/members/$(uid);
+    }
+
+    function isMember(circleId) {
+      return signedIn() && exists(memberPath(circleId, request.auth.uid));
+    }
+
+    function isCircleCreator(circleId) {
+      return signedIn()
+        && get(circlePath(circleId)).data.get('createdBy', '') == request.auth.uid;
+    }
+
+    function isCircleAdmin(circleId) {
+      return isCircleCreator(circleId)
+        || (isMember(circleId)
+            && (get(memberPath(circleId, request.auth.uid)).data.get('isAdmin', false) == true
+                || get(memberPath(circleId, request.auth.uid)).data.get('isOwner', false) == true));
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      // New profiles can't make themselves app admins or pre-block anyone.
+      allow create: if isSelf(uid)
+        && request.resource.data.get('isAdmin', false) == false
+        && request.resource.data.get('isBlocked', false) == false;
+
+      // Owners edit their own profile, except moderation fields.
+      allow update: if isSelf(uid)
+        && !changedKeys().hasAny(['isAdmin', 'isBlocked', 'reported']);
+
+      // Other users may only touch the relationship fields both apps keep in
+      // sync on both sides (joining circles, connections, friend requests).
+      allow update: if signedIn() && !isSelf(uid)
+        && onlyChanges(['joinedCircles', 'joinedEvents', 'connections',
+                        'connectionRequests', 'friends', 'friendRequests', 'stats']);
+
+      // Reporting someone bumps their counter by exactly one.
+      allow update: if signedIn() && !isSelf(uid)
+        && onlyChanges(['reported'])
+        && request.resource.data.reported == resource.data.get('reported', 0) + 1;
+
+      // Moderation.
+      allow update: if isAppAdmin();
+      allow delete: if isSelf(uid) || isAppAdmin();
+
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isSelf(uid);
+        // Anyone signed in can notify a user (connection requests, invites).
+        allow create: if signedIn();
+      }
+    }
+
+    // ---------- circles ----------
+    match /circles/{circleId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isCircleAdmin(circleId);
+      allow delete: if isCircleAdmin(circleId) || isAppAdmin();
+
+      match /members/{memberId} {
+        allow read: if signedIn();
+
+        // Admins add/promote/remove anyone. Anyone else may only add
+        // themselves, as a plain member, by naming a pending invitation to
+        // this circle that was sent to them (invitationId on the member doc).
+        // Join requests are always added by an admin.
+        function acceptsInvitation() {
+          let invitation = get(/databases/$(database)/documents/circleRequests/$(request.resource.data.invitationId)).data;
+          return invitation.type == 'invitation'
+            && invitation.circleId == circleId
+            && invitation.invitedUserId == request.auth.uid
+            && invitation.get('status', 'pending') == 'pending';
+        }
+
+        allow create: if isCircleAdmin(circleId)
+          || (isSelf(memberId)
+              && request.resource.data.get('isAdmin', false) == false
+              && request.resource.data.get('isOwner', false) == false
+              && request.resource.data.invitationId is string
+              && acceptsInvitation());
+        allow update: if isCircleAdmin(circleId)
+          || (isSelf(memberId) && !changedKeys().hasAny(['isAdmin', 'isOwner']));
+        // Leaving a circle, or an admin removing someone.
+        allow delete: if isSelf(memberId) || isCircleAdmin(circleId);
+      }
+
+      match /chat/{messageId} {
+        allow read: if isMember(circleId);
+        allow create: if isMember(circleId);
+        // Authors edit their own messages; other members can only react,
+        // mark seen, or hide a message for themselves.
+        allow update: if isMember(circleId)
+          && (resource.data.get('user', {}).get('userId', '') == request.auth.uid
+              || onlyChanges(['react', 'reactions', 'seenBy', 'readBy', 'deletedFor', 'hiddenBy']));
+        allow delete: if isCircleAdmin(circleId)
+          || (isMember(circleId)
+              && resource.data.get('user', {}).get('userId', '') == request.auth.uid);
+      }
+
+      // Votes, options, RSVPs and stage changes come from any member.
+      match /polls/{pollId} {
+        allow read, create, update: if isMember(circleId);
+        allow delete: if isCircleAdmin(circleId);
+      }
+
+      match /events/{eventId} {
+        allow read, create: if isMember(circleId);
+        // Members RSVP; only admins confirm or reject a pending event.
+        allow update: if isCircleAdmin(circleId)
+          || (isMember(circleId) && onlyChanges(['rsvps']));
+        // "Start new planning" clears past events from any member's device.
+        allow delete: if isMember(circleId) || isCircleAdmin(circleId);
+      }
+
+      match /memories/{memoryId} {
+        allow read, create: if isMember(circleId);
+        allow update, delete: if isCircleAdmin(circleId)
+          || (isMember(circleId) && resource.data.get('ownerUid', '') == request.auth.uid);
+      }
+
+      match /typing/{docId} {
+        allow read, write: if isMember(circleId);
+      }
+    }
+
+    // ---------- join requests and invitations ----------
+    match /circleRequests/{requestId} {
+      function involved(data) {
+        return data.get('requesterId', '') == request.auth.uid
+          || data.get('invitedUserId', '') == request.auth.uid
+          || data.get('inviterId', '') == request.auth.uid
+          || data.get('approverId', '') == request.auth.uid
+          || data.get('userId', '') == request.auth.uid;
+      }
+
+      allow read: if signedIn()
+        && (involved(resource.data) || isCircleAdmin(resource.data.circleId));
+
+      // Join requests come from the requester; invitations from a member.
+      allow create: if signedIn()
+        && ((request.resource.data.type == 'join-request'
+             && request.resource.data.requesterId == request.auth.uid)
+            || (request.resource.data.type == 'invitation'
+                && isMember(request.resource.data.circleId)));
+
+      // Admins decide join requests; the invitee answers an invitation.
+      // Who and which circle a request is about never changes, so an
+      // invitation can't be pointed at another circle before accepting it.
+      allow update: if signedIn()
+        && (isCircleAdmin(resource.data.circleId) || involved(resource.data))
+        && !changedKeys().hasAny(['type', 'circleId', 'requesterId', 'invitedUserId', 'inviterId']);
+      allow delete: if signedIn()
+        && (isCircleAdmin(resource.data.circleId) || involved(resource.data));
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

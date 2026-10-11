@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useDispatch } from "react-redux";
 import { fetchCircles } from "../../../../features/circles/circlesSlice";
+import { fetchUserProfile } from "../../../../features/userProfile/profileSlice";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { serverTimestamp, Timestamp } from "firebase/firestore";
@@ -239,6 +240,8 @@ export default function CreateCircleModalContainer({ closeModal }) {
 
       toast.success("Circle created successfully!", toastStyles);
       dispatch(fetchCircles());
+      // My Circles filters by the profile's joinedCircles, so reload it too.
+      dispatch(fetchUserProfile(user.uid));
       resetAllFieldsContainer();
       closeModal();
     } catch (error) {

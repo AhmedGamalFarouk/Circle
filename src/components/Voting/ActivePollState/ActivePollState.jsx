@@ -200,11 +200,16 @@ const ActivePollState = ({ pollData, onFinishVoting, onVote, onAddOption }) => {
               whileHover={{ scale: 1.05, boxShadow: "inset 0 0 7px black" }}
               whileTap={{ scale: 0.95 }}
               disabled={isExpired}
-              onClick={onFinishVoting}
+              onClick={() => {
+                // Closing ends voting for the whole circle, not just this user.
+                if (window.confirm("Close this poll for everyone and pick the winner?")) {
+                  onFinishVoting();
+                }
+              }}
               className={`border-secondary from-primary to-secondary font-secondary mt-4 w-full cursor-pointer rounded-full border-2 bg-gradient-to-l bg-clip-text px-4 py-3 font-bold text-transparent shadow-2xl sm:mt-6 sm:px-5 sm:py-4 ${isExpired && "cursor-not-allowed opacity-50"
                 }`}
             >
-              {isExpired ? "Poll Ended" : "Send Vote"}
+              {isExpired ? "Poll Ended" : "Close Poll"}
             </motion.button>
           </motion.div>
         )}
