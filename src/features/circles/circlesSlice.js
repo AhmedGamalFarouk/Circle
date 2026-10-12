@@ -1,13 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getFirestore, collection, getDocs, doc, getDoc, onSnapshot } from "firebase/firestore";
-
-// Older web builds saved translated labels ("عام"/"خاص") and the misspelled
-// "permenent". Mobile and the filters only understand the canonical values.
-const LEGACY_PRIVACY = { "عام": "public", "خاص": "private" };
-const normalizeCircleEnums = (data) => ({
-    circlePrivacy: LEGACY_PRIVACY[data.circlePrivacy] || data.circlePrivacy,
-    circleType: data.circleType === "flash" ? "flash" : data.circleType ? "permanent" : data.circleType,
-});
+import { normalizeCircle } from "../../shared/schema.mjs";
 
 // Fetch all circles
 export const fetchCircles = createAsyncThunk(
@@ -22,8 +15,7 @@ export const fetchCircles = createAsyncThunk(
             .map((doc) => {
                 const data = doc.data();
                 return {
-                    ...data,
-                    ...normalizeCircleEnums(data),
+                    ...normalizeCircle(data),
                     id: doc.id,
                     expiresAt: data.expiresAt && typeof data.expiresAt.toDate === "function"
                         ? data.expiresAt.toDate().toISOString()
@@ -51,8 +43,7 @@ export const fetchCircleById = createAsyncThunk(
         }
         const data = snapshot.data();
         return {
-            ...data,
-            ...normalizeCircleEnums(data),
+            ...normalizeCircle(data),
             id: snapshot.id,
             expiresAt: data.expiresAt?.toDate().toISOString() || null,
             createdAt: data.createdAt?.toDate()?.toISOString() || null,
@@ -66,8 +57,7 @@ export const listenToCircles = () => (dispatch) => {
         const circlesData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
-                ...data,
-                ...normalizeCircleEnums(data),
+                ...normalizeCircle(data),
                 id: doc.id,
                 expiresAt: data.expiresAt && typeof data.expiresAt.toDate === "function"
                     ? data.expiresAt.toDate().toISOString()

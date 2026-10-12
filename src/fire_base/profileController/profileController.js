@@ -1,6 +1,7 @@
 // firebase/profileFunctions.js
 import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase-config";
+import { normalizeUser } from "../../shared/schema.mjs";
 
 export const createUserProfile = async (userId, profileData) => {
   try {
@@ -40,7 +41,7 @@ export const getUserProfile = async (userId) => {
     const docSnap = await getDoc(userRef);
 
     if (docSnap.exists()) {
-      const data = docSnap.data();
+      const data = normalizeUser(docSnap.data());
       return {
         id: docSnap.id,
         ...data,
