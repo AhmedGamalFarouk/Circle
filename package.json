@@ -8,12 +8,14 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --test src/shared/schema.test.mjs",
+    "test:api": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only firestore \"node --test api/cron.test.mjs\"",
     "preview": "vite preview",
     "test:e2e": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test\"",
     "test:e2e:ui": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test --ui\"",
     "e2e:emulators": "firebase emulators:start --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database"
   },
   "dependencies": {
+    "firebase-admin": "^13.10.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource-variable/quicksand": "^5.2.8",
@@ -81,7 +83,6 @@
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
-    "firebase-admin": "^13.10.0",
     "firebase-tools": "^14.27.0",
     "globals": "^16.2.0",
     "postcss": "^8.5.6",
