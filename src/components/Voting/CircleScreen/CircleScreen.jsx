@@ -19,6 +19,7 @@ import useAuth from "../../../hooks/pollhooks/useAuth";
 import useUserProfile from "../../../hooks/pollhooks/useUserProfile";
 import Modal from "../../ui/Modal/Modal";
 import { usePollModal } from "../../../hooks/chathooks/usePollModal";
+import { getWinningOption } from "../../../shared/schema.mjs";
 
 const PLANNING_STAGES = {
   IDLE: "Idle",
@@ -218,15 +219,6 @@ export default function CircleScreen() {
     if (!poll?.id) return;
 
     const pollRef = doc(db, "circles", circleId, "polls", poll.id);
-
-    const getWinningOption = (votes) => {
-      if (!votes || Object.keys(votes).length === 0) return null;
-      const counts = Object.values(votes).reduce((acc, opt) => {
-        acc[opt] = (acc[opt] || 0) + 1;
-        return acc;
-      }, {});
-      return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
-    };
 
     try {
       if (currentStage === PLANNING_STAGES.PLANNING_ACTIVITY && !poll?.placePoll) {

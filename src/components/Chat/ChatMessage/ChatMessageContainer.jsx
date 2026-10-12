@@ -14,7 +14,7 @@ import MessageInfoModalContainer from "../../ui/Modal/MessageInfoModal/MessageIn
 import TypingIndicatorContainer from "../TypingIndicator/TypingIndicatorContainer";
 
 // Utils and Hooks
-import { normalizeMessage } from "../../../utils/chatutils/normalizeMessage";
+import { normalizeMessage } from "../../../shared/schema.mjs";
 import { getMessageRadius } from "../../../utils/chatutils/MessageBorderDir";
 import {
   getUserColor,
