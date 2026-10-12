@@ -1,13 +1,15 @@
 // Runs api/cron.js against the Firestore emulator: npm run test:api
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { Timestamp } from "firebase-admin/firestore";
-import { db } from "./_lib/admin.js";
+import { getDb } from "./_lib/admin.js";
 import { GET } from "./cron.js";
 
 process.env.CRON_SECRET = "test-secret";
 const call = (auth) => GET(new Request("http://localhost/api/cron", { headers: auth ? { authorization: auth } : {} }));
 const ago = (h) => Timestamp.fromMillis(Date.now() - h * 3600e3);
+const db = getDb();
 
 beforeEach(async () => {
     for (const c of ["circles", "users", "circleRequests"]) await db.recursiveDelete(db.collection(c));
@@ -23,6 +25,16 @@ beforeEach(async () => {
     await db.doc("circles/keep/polls/due").set({ stage: "Planning the Activity", activityPoll: { deadline: ago(1), votes: { a: "Cinema", b: "Cinema", c: "Bowling" } } });
     await db.doc("circles/keep/polls/novotes").set({ stage: "Planning the Activity", activityPoll: { deadline: ago(1), votes: {} } });
     await db.doc("circles/keep/polls/later").set({ stage: "Planning the Place", placePoll: { deadline: ago(-1), votes: { a: "Park" } } });
+});
+
+test("answers 401 even when no service account is configured (production before env setup)", () => {
+    const env = { ...process.env, CRON_SECRET: "s" };
+    delete env.FIRESTORE_EMULATOR_HOST;
+    delete env.FIREBASE_SERVICE_ACCOUNT;
+    const out = execFileSync("node", ["--input-type=module", "-e",
+        `const { GET } = await import(${JSON.stringify(new URL("./cron.js", import.meta.url).href)});
+         console.log((await GET(new Request("http://x/api/cron"))).status);`], { env, encoding: "utf8" });
+    assert.equal(out.trim(), "401");
 });
 
 test("refuses calls without the cron secret", async () => {

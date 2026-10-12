@@ -2,7 +2,7 @@
 // "Authorization: Bearer $CRON_SECRET"; anything else gets 401.
 // Every step is safe to re-run, so a run that stops halfway is finished the next day.
 import { FieldValue } from "firebase-admin/firestore";
-import { db } from "./_lib/admin.js";
+import { getDb } from "./_lib/admin.js";
 import { getWinningOption, isFlashExpired } from "../src/shared/schema.mjs";
 
 // Same stage names and messages as the apps' "end voting" (CircleScreen.jsx).
@@ -11,7 +11,7 @@ const SUB_POLLS = [
     { key: "placePoll", open: "Planning the Place", closed: "Place Poll Closed", field: "winningPlace", message: (w) => `📍 Place poll closed! "${w}" won.` },
 ];
 
-async function deleteFlashCircle(circle) {
+async function deleteFlashCircle(db, circle) {
     const members = await circle.ref.collection("members").get();
     for (const member of members.docs) {
         await db.doc(`users/${member.data().userId || member.id}`)
@@ -23,7 +23,7 @@ async function deleteFlashCircle(circle) {
     await db.recursiveDelete(circle.ref);
 }
 
-async function closeExpiredPolls(circle, now) {
+async function closeExpiredPolls(db, circle, now) {
     let closed = 0;
     const polls = await circle.ref.collection("polls").get();
     for (const poll of polls.docs) {
@@ -50,16 +50,17 @@ export async function GET(request) {
     if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
         return new Response("Unauthorized", { status: 401 });
     }
+    const db = getDb();
     const now = new Date();
     let deleted = 0, closed = 0;
     // shortcut: full scan, fine at a few hundred circles; add a collection-group index past that
     const circles = await db.collection("circles").get();
     for (const circle of circles.docs) {
         if (isFlashExpired(circle.data(), now)) {
-            await deleteFlashCircle(circle);
+            await deleteFlashCircle(db, circle);
             deleted++;
         } else {
-            closed += await closeExpiredPolls(circle, now);
+            closed += await closeExpiredPolls(db, circle, now);
         }
     }
     console.log(`cron: deleted ${deleted} expired flash circles, closed ${closed} polls`);
