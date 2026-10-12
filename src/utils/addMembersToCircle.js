@@ -6,7 +6,6 @@ export async function addMembersToCircle(circleId, creatorUid, creatorProfile, s
 
     // Add creator as owner and admin
     await setDoc(doc(membersColRef, creatorUid), {
-        email: creatorProfile.email || user.email,
         isOwner: true, // <-- new field
         isAdmin: true,
         username: creatorProfile.username || user.username || "",
@@ -32,7 +31,6 @@ export async function addMembersToCircle(circleId, creatorUid, creatorProfile, s
             }
 
             await setDoc(doc(membersColRef, memberUid), {
-                email: memberProfile.email || "",
                 isOwner: false, // <-- new field
                 isAdmin: false,
                 username: memberProfile.username || "",
