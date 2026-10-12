@@ -59,7 +59,6 @@ export async function addMemberToCircle(circleId, newMemberUid, currentUser) {
     const memberProfile = userDocSnap.data();
     // Add member to circle
     await setDoc(newMemberRef, {
-      email: memberProfile.email || "",
       isOwner: false,
       isAdmin: false,
       username: memberProfile.username || "",
@@ -405,7 +404,6 @@ export async function addCreatorAsFirstMember(circleId, creatorUid) {
     if (circleSnap.exists()) {
       // only add member if circle still exists
       await setDoc(doc(db, "circles", circleId, "members", creatorUid), {
-        email: creatorProfile.email || "",
         isOwner: true,
         isAdmin: true,
         username: creatorProfile.username || "",

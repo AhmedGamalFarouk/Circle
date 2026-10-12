@@ -121,6 +121,7 @@ export default function CircleScreen() {
         const docRef = await addDoc(pollRef, {
           stage: PLANNING_STAGES.PLANNING_ACTIVITY,
           activityPoll: { ...pollDataWithTimestamp, votes: {} },
+          createdBy: user.uid,
           timestamp: serverTimestamp(),
           timeStamp: serverTimestamp(),
         });

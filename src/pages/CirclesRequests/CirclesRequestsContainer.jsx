@@ -85,7 +85,6 @@ function CirclesRequistsContainer() {
         } else {
             memberId = request.invitedUserId;
             memberData = {
-                email: request.invitedUserEmail,
                 isAdmin: false,
                 isOwner: false,
                 photoUrl: request.invitedUserPhotoUrl,

@@ -102,6 +102,8 @@ A modern React-based web dashboard and user portal for the location-based social
 
 ## 🏗 Directory Structure
 
+`src/shared/schema.mjs` holds the field shapes both apps share (the header comment lists them). This repo is its source of truth: the mobile app keeps a pinned copy, so after merging a change here, run `node scripts/sync-schema.mjs <merge commit sha>` in `Circle-mobile` and open a PR there. `npm test` runs its tests.
+
 ```
 WEB/Circle/
 ├── src/

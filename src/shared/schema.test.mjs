@@ -68,4 +68,6 @@ test("getWinningOption: majority, tie and empty", () => {
     assert.equal(getWinningOption({ a: "Bowling", b: "Cinema" }), "Cinema");
     assert.equal(getWinningOption({}), null);
     assert.equal(getWinningOption(undefined), null);
+    assert.equal(getWinningOption({ a: null, b: "", c: "Cinema" }), "Cinema");
+    assert.equal(getWinningOption({ a: null }), null);
 });

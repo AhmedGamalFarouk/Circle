@@ -114,12 +114,15 @@ export function normalizeUser(data, now = new Date()) {
 
 // ---------- polls ----------
 
-// votes: {uid: optionText}. Ties go to the option counted last.
+// votes: {uid: optionText}; non-string values are ignored. Ties go to the
+// option counted last.
 export function getWinningOption(votes) {
     if (!votes || Object.keys(votes).length === 0) return null;
     const counts = Object.values(votes).reduce((acc, opt) => {
-        acc[opt] = (acc[opt] || 0) + 1;
+        if (typeof opt === "string" && opt) acc[opt] = (acc[opt] || 0) + 1;
         return acc;
     }, {});
-    return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
+    const options = Object.keys(counts);
+    if (options.length === 0) return null;
+    return options.reduce((a, b) => (counts[a] > counts[b] ? a : b));
 }
