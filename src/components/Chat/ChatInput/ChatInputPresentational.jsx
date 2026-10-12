@@ -30,6 +30,7 @@ function ChatInputPresentational({
   closeCameraModal,
   handleCapturedPhoto,
   handleVideoUpload, // Add this prop for video upload
+  disabled,
 }) {
   const mediaMenuRef = useRef(null);
   const { t } = useTranslation();
@@ -107,7 +108,7 @@ function ChatInputPresentational({
               placeholder={
                 isEditing ? "Edit your message..." : "Type a message..."
               }
-              disabled={isRecording}
+              disabled={isRecording || disabled}
             />
             {hasText || isEditing ? (
               <button
