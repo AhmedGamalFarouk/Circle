@@ -55,6 +55,11 @@ test.describe("profile", () => {
     await page.waitForTimeout(1500);
     const profile = await getDoc(`users/${other.uid}`);
     expect(profile.reportedBy ?? profile.reported).toBeTruthy();
+    // The reporter's list is private, not on their public profile.
+    expect((await getDoc(`users/${me.uid}/private/moderation`)).reportedUsers).toEqual([other.uid]);
+    expect((await getDoc(`users/${me.uid}`)).reportedUsers).toBeUndefined();
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Reported", exact: true })).toBeVisible();
   });
 
   test("an unknown profile id shows a not-found state", async ({ page }) => {
