@@ -1,6 +1,6 @@
 # Circle Web Portal - Social Circles Dashboard
 
-A modern React-based web dashboard and user portal for the location-based social platform **Circle**. The web portal allows users to discover and join local social circles, participate in event scheduling, upload and view memories, chat in real-time, and purchase premium subscription features using Stripe.
+A modern React-based web dashboard and user portal for the location-based social platform **Circle**. The web portal allows users to discover and join local social circles, participate in event scheduling, upload and view memories, and chat in real-time.
 
 ---
 
@@ -29,9 +29,8 @@ A modern React-based web dashboard and user portal for the location-based social
 - Upload photos and videos from local devices.
 - Secure, client-side direct uploads utilizing **Cloudinary** media storage services.
 
-### 💳 Stripe Integration
-- Integrated premium tier subscription plans (Circle+).
-- Secure credit card processing using `@stripe/stripe-js` and `@stripe/react-stripe-js` with custom redirects to Success/Cancel landing pages.
+### 💳 Plans
+- The Payments page lists the Free and premium plans. Paid plans are marked "Coming soon": billing is not built yet.
 
 ### 🌐 Localization & Design
 - Full multi-language support (English & Arabic) powered by `i18next`.
@@ -57,7 +56,6 @@ A modern React-based web dashboard and user portal for the location-based social
   - Cloud Firestore (Users, Circles, and Events metadata)
   - Realtime Database (Chat messages)
 - **Cloudinary** - Media storage & hosting for memories, avatars, and cover photos
-- **Stripe** - Payment gateway processing subscriptions
 - **Leaflet & React-Leaflet** - Interactive location maps
 
 ---
@@ -81,11 +79,8 @@ A modern React-based web dashboard and user portal for the location-based social
    npm install
    ```
 
-3. **Configure Environment Variables**
-   Create a `.env` file in the root of the `WEB/Circle` project directory:
-   ```env
-   VITE_STRIPE_KEY=your_stripe_publishable_key
-   ```
+3. **Configuration**
+   No environment variables are required.
    > ⚠️ **Note**: Firebase configuration is maintained in `src/firebase-config.js` and Cloudinary configuration is in `src/config/cloudinary.js`. Update those files with your credentials directly or refactor them to use `import.meta.env` keys if desired.
 
 4. **Start the Development Server**
@@ -156,8 +151,7 @@ npm run preview
 
 The repository includes a `vercel.json` file, allowing easy deployments to **Vercel**:
 1. Install the Vercel CLI (`npm install -g vercel`) or link the GitHub repository to your Vercel Dashboard.
-2. Ensure you add the `VITE_STRIPE_KEY` environment variable in the Vercel project settings.
-3. Deploy!
+2. Deploy!
 
 ---
 

@@ -35,8 +35,6 @@
     "@schedule-x/react": "^2.36.0",
     "@schedule-x/theme-default": "^2.36.0",
     "@schedule-x/theme-shadcn": "^2.36.0",
-    "@stripe/react-stripe-js": "^3.7.0",
-    "@stripe/stripe-js": "^7.5.0",
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
     "cloudinary": "^2.7.0",

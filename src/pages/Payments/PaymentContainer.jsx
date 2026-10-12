@@ -1,33 +1,22 @@
 import { CrownIcon, UserIcon, ZapIcon } from "lucide-react";
 import Button from "../../components/ui/Buttons/Button";
 import PaymentPresentational from "./PaymentPresentational";
-import { loadStripe } from "@stripe/stripe-js";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 function PaymentContainer() {
   const { t } = useTranslation();
-  let stripePromise;
-  const getStripe = () => {
-    if (!stripePromise) {
-      stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY);
-    }
-    return stripePromise;
-  };
-  const checkout = async (priceId) => {
-    const item = {
-      price: priceId,
-      quantity: 1,
-    };
-    const checkoutOptions = {
-      lineItems: [item],
-      mode: "subscription",
-      successUrl: `${window.location.origin}/success`,
-      cancelUrl: `${window.location.origin}/cancel`,
-    };
-    const stripe = await getStripe();
-    await stripe.redirectToCheckout(checkoutOptions);
-  };
+  // Billing is deferred: nothing records a purchase yet, so paid plans
+  // can't be bought.
+  const comingSoon = (
+    <button
+      type="button"
+      disabled
+      className="font-quick-sand mx-auto block w-full cursor-not-allowed rounded-full bg-gray-500/40 px-6 py-3 text-lg font-semibold opacity-70"
+    >
+      {t("payment.Coming soon")}
+    </button>
+  );
 
   const cards = [
     {
@@ -63,16 +52,7 @@ function PaymentContainer() {
         t("payment.Priority support"),
         t("payment.Up to 10GB storage"),
       ],
-      actionBtn: (
-        <Button
-          size="large"
-          variant="primary"
-          classes={"mx-auto block"}
-          handleClick={() => checkout("price_1RmDoZ4SCalKHrm25m0sglVh")}
-        >
-          {t("payment.Subscribe Now")}
-        </Button>
-      ),
+      actionBtn: comingSoon,
     },
     {
       color: "#4ea8de",
@@ -89,16 +69,7 @@ function PaymentContainer() {
         t("payment.Custom Circle branding"),
         t("payment.Scheduled hangouts & auto-reminders"),
       ],
-      actionBtn: (
-        <Button
-          size="large"
-          variant="primary"
-          classes={"mx-auto block"}
-          handleClick={() => checkout("price_1RmDpH4SCalKHrm2w7ihyGY1")}
-        >
-          {t("payment.Subscribe Now")}
-        </Button>
-      ),
+      actionBtn: comingSoon,
     },
   ];
   return <PaymentPresentational cards={cards} />;

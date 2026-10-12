@@ -24,8 +24,6 @@ const RegisterPage = lazy(
   () => import("../pages/Authentication/RegisterPage/RegisterPage"),
 );
 const EventsContainer = lazy(() => import("../pages/Events/EventsContainer"));
-const PaymentSuccess = lazy(() => import("../pages/Payments/Success"));
-const PaymentFailure = lazy(() => import("../pages/Payments/Cancel"));
 const Explore = lazy(() => import("../pages/Explore/Explore"));
 const ProfileContainer = lazy(
   () => import("../pages/ProfilePage/ProfileContainer.jsx"),
@@ -87,22 +85,6 @@ const routes = createBrowserRouter([
     element: (
       <LazyWrapper>
         <ForgetPassword />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "/success",
-    element: (
-      <LazyWrapper>
-        <PaymentSuccess />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "/cancel",
-    element: (
-      <LazyWrapper>
-        <PaymentFailure />
       </LazyWrapper>
     ),
   },

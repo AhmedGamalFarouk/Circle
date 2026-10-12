@@ -1,7 +1,6 @@
 import { useState } from "react";
 import CreatePollModalPresentational from "./CreatePollModalPresentational"; // adjust path
 import { useTranslation } from "react-i18next";
-import { getAiPollOptions } from "./aiSuggestOptions";
 
 export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
   const { t } = useTranslation();
@@ -14,22 +13,9 @@ export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
   const onOptionChange = (index, value) => {
     const newOptions = [...options];
     newOptions[index] = value;
+    // Typing in the last field opens another one.
+    if (index === options.length - 1 && value.trim()) newOptions.push("");
     setOptions(newOptions);
-  };
-
-  const handleAskAi = async () => {
-    if (!question.trim()) return alert(t("Please enter a question."));
-    try {
-      const aiOptions = await getAiPollOptions(question);
-      if (!aiOptions || aiOptions.length < 2) {
-        alert(t("AI did not return enough options."));
-        return;
-      }
-      setOptions([...aiOptions, ""]);
-    } catch (error) {
-      console.error("AI suggestion error:", error);
-      alert(t("Failed to fetch AI suggestions."));
-    }
   };
 
   const onSubmit = (e) => {
@@ -68,7 +54,6 @@ export default function PollCreation({ onLaunchPoll, pollType, onClose }) {
       onOptionChange={onOptionChange}
       expireDate={expireDate}
       setExpireDate={setExpireDate}
-      onAskAi={handleAskAi}
       onSubmit={onSubmit}
       onClose={onClose}
       t={t}
