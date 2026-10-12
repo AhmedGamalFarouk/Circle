@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeMessage, normalizeCircle, normalizeUser, ageFrom, getWinningOption } from "./schema.mjs";
+import { normalizeMessage, normalizeCircle, normalizeUser, ageFrom, getWinningOption, isFlashExpired } from "./schema.mjs";
 
 const NOW = new Date(2026, 9, 12);
 
@@ -61,6 +61,16 @@ test("normalizeMessage: mobile voice message with mediaUrl and reactions", () =>
     assert.equal(m.audioUrl, "u");
     assert.equal(m.react.length, 1);
     assert.match(m.sentTime, /02:05 PM/);
+});
+
+test("isFlashExpired: only flash circles past expiresAt, any date shape", () => {
+    const past = new Date(2026, 9, 11), future = new Date(2026, 9, 13);
+    assert.equal(isFlashExpired({ circleType: "flash", expiresAt: past }, NOW), true);
+    assert.equal(isFlashExpired({ circleType: "flash", expiresAt: past.toISOString() }, NOW), true);
+    assert.equal(isFlashExpired({ circleType: "flash", expiresAt: { toDate: () => past } }, NOW), true);
+    assert.equal(isFlashExpired({ circleType: "flash", expiresAt: future }, NOW), false);
+    assert.equal(isFlashExpired({ circleType: "flash", expiresAt: null }, NOW), false);
+    assert.equal(isFlashExpired({ circleType: "permanent", expiresAt: past }, NOW), false);
 });
 
 test("getWinningOption: majority, tie and empty", () => {

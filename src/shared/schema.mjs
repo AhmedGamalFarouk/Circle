@@ -70,6 +70,12 @@ export function normalizeCircle(data) {
     };
 }
 
+// Flash circles expire at expiresAt (Timestamp, Date or ISO string).
+export function isFlashExpired(circle, now = new Date()) {
+    const expiresAt = toDate(circle?.expiresAt);
+    return circle?.circleType === "flash" && !!expiresAt && expiresAt <= now;
+}
+
 // ---------- users ----------
 
 const toRequest = (entry) => (typeof entry === "string" ? { uid: entry } : entry);

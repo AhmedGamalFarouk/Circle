@@ -27,6 +27,17 @@ export default defineConfig([
     },
   },
   {
+    // Server code lives in api/; keep the Admin SDK out of the browser bundle.
+    files: ['src/**/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{ group: ['firebase-admin', 'firebase-admin/*'], message: 'firebase-admin is server-only; use it from api/.' }] }],
+    },
+  },
+  {
+    files: ['api/**/*.{js,mjs}'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     // Playwright tests run in Node, and fixtures call `use`, not a React hook.
     files: ['e2e/**/*.js', 'playwright.config.js'],
     languageOptions: { globals: globals.node },
