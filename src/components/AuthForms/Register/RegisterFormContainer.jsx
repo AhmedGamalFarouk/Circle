@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, GoogleProvider } from "../../../firebase-config";
+import { auth, db, GoogleProvider } from "../../../firebase-config";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setUserInfo } from "../../../features/user/userSlice";
@@ -18,13 +18,15 @@ import interests from "../../../constants/interests";
 
 // components
 import RegisterFormPresentional from "./RegisterFormPresentional";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, doc, setDoc } from "firebase/firestore";
+import { ageFrom } from "../../../shared/schema.mjs";
 
 function RegisterFormContainer({ onSwitchToLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userName, setUserName] = useState("");
-  const [userAge, setUserAge] = useState(null);
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const userAge = ageFrom(dateOfBirth);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [location, setLocation] = useState("");
@@ -244,6 +246,8 @@ function RegisterFormContainer({ onSwitchToLogin }) {
       };
 
       await createUserProfile(user.uid, profileData);
+      // The birth date stays private; the public profile only shows the age.
+      await setDoc(doc(db, "users", user.uid, "private", "profile"), { dateOfBirth });
 
       dispatch(setUserInfo({ user, token }));
       toast.success("Account created successfully! Welcome to Circle!");
@@ -369,20 +373,10 @@ function RegisterFormContainer({ onSwitchToLogin }) {
   };
 
   const handleAgeChange = (e) => {
-    const ageDate = new Date(e.target.value);
-    const today = new Date();
-    let calculatedAge = today.getFullYear() - ageDate.getFullYear();
-    // Adjust for month/day
-    const m = today.getMonth() - ageDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < ageDate.getDate())) {
-      calculatedAge--;
-    }
-    if (calculatedAge < 18) {
+    setDateOfBirth(e.target.value);
+    if ((ageFrom(e.target.value) ?? 0) < 18) {
       toast.warning("You must be at least 18 years old to register.");
-      setUserAge(null);
-      return;
     }
-    setUserAge(calculatedAge);
   };
 
   const handleLocation = async () => {

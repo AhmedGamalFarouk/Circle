@@ -95,6 +95,11 @@ service cloud.firestore {
         // Anyone signed in can notify a user (connection requests, invites).
         allow create: if signedIn();
       }
+
+      // Data only the user sees: birth date, block/report lists, push tokens.
+      match /private/{docId} {
+        allow read, write: if isSelf(uid);
+      }
     }
 
     // ---------- circles ----------
@@ -168,6 +173,21 @@ service cloud.firestore {
       match /typing/{docId} {
         allow read, write: if isMember(circleId);
       }
+    }
+
+    // ---------- reports ----------
+    // Written by the reporter, read by app admins in the console.
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['reporterId', 'reportedId', 'reason', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['reporterId', 'reportedId', 'reason', 'createdAt', 'circleId', 'messageId'])
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reportedId != request.auth.uid
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() >= 1
+        && request.resource.data.reason.size() <= 500
+        && request.resource.data.createdAt == request.time;
+      allow read, update, delete: if isAppAdmin();
     }
 
     // ---------- join requests and invitations ----------

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useParams } from "react-router";
-import { doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import { auth ,db } from "../../firebase-config";
 import { getUserInfo } from "../../features/user/userSlice";
 import ProfilePresentational from "./ProfilePresentational";
@@ -114,13 +114,16 @@ const ProfileContainer = () => {
 
  
 
-// Reports are kept on the reporter's own profile; the reported user only
-// gets their `reported` counter bumped by one (all the rules allow, and the
-// field mobile uses). Blocking is left to app admins.
-const reportedUsers = useSelector((state) => state.userProfile.profile?.reportedUsers);
+// The reporter's "already reported" list lives in users/{uid}/private/moderation,
+// which only they can read; older reports are still on the public profile. The
+// reported user only gets their `reported` counter bumped by one.
+const legacyReported = useSelector((state) => state.userProfile.profile?.reportedUsers);
 useEffect(() => {
-  setReported(!!reportedUsers?.includes(profileId));
-}, [reportedUsers, profileId]);
+  if (!userInfo?.uid) return;
+  getDoc(doc(db, "users", userInfo.uid, "private", "moderation"))
+    .then((snap) => setReported([...(snap.data()?.reportedUsers || []), ...(legacyReported || [])].includes(profileId)))
+    .catch((error) => console.error("Error loading report state:", error));
+}, [userInfo?.uid, profileId, legacyReported]);
 
 const handleReport = async () => {
   if (isReporting || reported || !userInfo?.uid) return;
@@ -128,11 +131,12 @@ const handleReport = async () => {
   setIsReporting(true);
   try {
     await updateDoc(doc(db, "users", profileId), { reported: increment(1) });
-    await updateDoc(doc(db, "users", userInfo.uid), {
-      reportedUsers: arrayUnion(profileId),
-    });
+    await setDoc(
+      doc(db, "users", userInfo.uid, "private", "moderation"),
+      { reportedUsers: arrayUnion(profileId) },
+      { merge: true }
+    );
     setReported(true);
-    dispatch(fetchUserProfile(userInfo.uid));
   } catch (error) {
     console.error("Error reporting user:", error);
   } finally {

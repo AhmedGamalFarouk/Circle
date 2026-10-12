@@ -30,7 +30,9 @@ test.describe("registration", () => {
 
     const account = await adminAuth.getUserByEmail(email);
     const profile = await getDoc(`users/${account.uid}`);
-    expect(profile).toMatchObject({ username, email, location: expect.any(String) });
+    expect(profile).toMatchObject({ username, email, location: expect.any(String), age: expect.any(Number) });
+    expect(profile.dateOfBirth).toBeUndefined();
+    expect(await getDoc(`users/${account.uid}/private/profile`)).toEqual({ dateOfBirth: "1995-05-05" });
   });
 
   test("rejects mismatched passwords and under-age users", async ({ page }) => {
