@@ -1,7 +1,7 @@
 // libs
 import { motion as Motion } from "framer-motion";
 import { Link } from "react-router";
-import { ChevronDown, User, Settings, LogOut, Globe, Moon, Sun } from "lucide-react";
+import { ChevronDown, User, Settings, LogOut, Globe, Moon, Sun, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 export default function UserDropdownPresentational({
     user,
@@ -130,6 +130,15 @@ export default function UserDropdownPresentational({
                         <LogOut className="w-4 h-4" />
                         {t("Logout")}
                     </button>
+
+                    <Link
+                        to="/account/delete"
+                        className="hover:bg-red-500/10 flex items-center px-4 py-3 text-sm text-red-500 transition-colors gap-x-3"
+                        onClick={() => setIsDropdownOpen(false)}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        {t("Delete account")}
+                    </Link>
                 </div>
             </Motion.div>
         </div>

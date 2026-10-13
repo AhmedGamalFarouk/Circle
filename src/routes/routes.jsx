@@ -35,6 +35,7 @@ const CirclesPageContainer = lazy(
 const CirclePageContainer = lazy(
   () => import("../pages/CirlclePage/CirclePageContainer.jsx"),
 );
+const DeleteAccountPage = lazy(() => import("../pages/DeleteAccount/DeleteAccountPage.jsx"));
 const MemoryUploadPage = lazy(
   () => import("../pages/Memories/AddMemories.jsx"),
 );
@@ -171,6 +172,16 @@ const routes = createBrowserRouter([
           <ProtectedRoute>
             <LazyWrapper>
               <MemoryUploadPage />
+            </LazyWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "account/delete",
+        element: (
+          <ProtectedRoute>
+            <LazyWrapper>
+              <DeleteAccountPage />
             </LazyWrapper>
           </ProtectedRoute>
         ),

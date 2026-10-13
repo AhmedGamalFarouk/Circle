@@ -22,7 +22,11 @@ export function parseCloudinaryUrl(url, cloudName) {
 
 export async function deleteUserMedia(uid, profile = {}, fetchImpl = fetch) {
     const { CLOUDINARY_CLOUD_NAME: cloud, CLOUDINARY_API_KEY: key, CLOUDINARY_API_SECRET: secret } = process.env;
-    if (!cloud || !key || !secret) throw new Error("Cloudinary credentials are not set.");
+    if (!cloud || !key || !secret) {
+        // Local emulator runs (e2e) have no Cloudinary account; production must.
+        if (process.env.FIRESTORE_EMULATOR_HOST) return;
+        throw new Error("Cloudinary credentials are not set.");
+    }
     const auth = "Basic " + Buffer.from(`${key}:${secret}`).toString("base64");
     const base = `https://api.cloudinary.com/v1_1/${cloud}/resources`;
     const call = async (url) => {
