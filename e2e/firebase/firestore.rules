@@ -55,6 +55,37 @@ service cloud.firestore {
         && get(circlePath(circleId)).data.get('createdBy', '') == request.auth.uid;
     }
 
+    // The demo account (store review) can't be deleted or have its email/admin flag changed.
+    function isDemoProfile() {
+      return resource.data.get('email', '') == 'demo@circle-26a87.firebaseapp.com';
+    }
+
+    // Relationship lists on another user's profile: a writer may add one entry for
+    // themselves, or remove only their own entries (plain uid or {uid, ...} object).
+    // ponytail: checks up to 3 removed copies; rules have no loops.
+    function ownsEntry(e) {
+      return e == request.auth.uid || (e is map && e.get('uid', '') == request.auth.uid);
+    }
+    function onlyOwnEntryChanged(field) {
+      let before = resource.data.get(field, []);
+      let after = request.resource.data.get(field, []);
+      let added = after.removeAll(before);
+      let removed = before.removeAll(after);
+      return (added.size() == 0 && removed.size() == 0)
+        || (added.size() == 1 && removed.size() == 0 && ownsEntry(added[0]))
+        || (added.size() == 0 && removed.size() <= 3
+            && ownsEntry(removed[0])
+            && (removed.size() < 2 || ownsEntry(removed[1]))
+            && (removed.size() < 3 || ownsEntry(removed[2])));
+    }
+
+    // In a poll update, a member may only change their own key in each sub-poll's votes.
+    function onlyOwnVote(subPoll) {
+      return request.resource.data.get(subPoll, {}).get('votes', {})
+        .diff(resource.data.get(subPoll, {}).get('votes', {}))
+        .affectedKeys().hasOnly([request.auth.uid]);
+    }
+
     function isCircleAdmin(circleId) {
       return isCircleCreator(circleId)
         || (isMember(circleId)
@@ -73,13 +104,18 @@ service cloud.firestore {
 
       // Owners edit their own profile, except moderation fields.
       allow update: if isSelf(uid)
-        && !changedKeys().hasAny(['isAdmin', 'isBlocked', 'reported']);
+        && !changedKeys().hasAny(['isAdmin', 'isBlocked', 'reported'])
+        && !(isDemoProfile() && changedKeys().hasAny(['email']));
 
       // Other users may only touch the relationship fields both apps keep in
-      // sync on both sides (joining circles, connections, friend requests).
+      // sync on both sides. In connections / connectionRequests they may only add
+      // or remove their own entry. Legacy friends / friendRequests have no
+      // writer left and are closed to other users.
       allow update: if signedIn() && !isSelf(uid)
         && onlyChanges(['joinedCircles', 'joinedEvents', 'connections',
-                        'connectionRequests', 'friends', 'friendRequests', 'stats']);
+                        'connectionRequests', 'stats'])
+        && onlyOwnEntryChanged('connections')
+        && onlyOwnEntryChanged('connectionRequests');
 
       // Reporting someone bumps their counter by exactly one.
       allow update: if signedIn() && !isSelf(uid)
@@ -87,8 +123,9 @@ service cloud.firestore {
         && request.resource.data.reported == resource.data.get('reported', 0) + 1;
 
       // Moderation.
-      allow update: if isAppAdmin();
-      allow delete: if isSelf(uid) || isAppAdmin();
+      allow update: if isAppAdmin()
+        && !(isDemoProfile() && changedKeys().hasAny(['email', 'isAdmin']));
+      allow delete: if (isSelf(uid) || isAppAdmin()) && !isDemoProfile();
 
       match /notifications/{notificationId} {
         allow read, update, delete: if isSelf(uid);
@@ -104,13 +141,21 @@ service cloud.firestore {
 
     // ---------- circles ----------
     match /circles/{circleId} {
-      allow read: if signedIn();
+      // Public circles, circles you're in, and your own circle before its first
+      // member doc exists. A missing doc reads as "doesn't exist", not denied.
+      allow read: if signedIn()
+        && (resource == null
+            || resource.data.get('circlePrivacy', '') == 'public'
+            || isMember(circleId)
+            || resource.data.get('createdBy', '') == request.auth.uid);
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isCircleAdmin(circleId);
       allow delete: if isCircleAdmin(circleId) || isAppAdmin();
 
       match /members/{memberId} {
-        allow read: if signedIn();
+        // Your own member docs are readable anywhere (collection-group rule below).
+        allow read: if isMember(circleId)
+          || (signedIn() && get(circlePath(circleId)).data.get('circlePrivacy', '') == 'public');
 
         // Admins add/promote/remove anyone. Anyone else may only add
         // themselves, as a plain member, by naming a pending invitation to
@@ -124,12 +169,12 @@ service cloud.firestore {
             && invitation.get('status', 'pending') == 'pending';
         }
 
-        allow create: if isCircleAdmin(circleId)
+        allow create: if exists(circlePath(circleId)) && (isCircleAdmin(circleId)
           || (isSelf(memberId)
               && request.resource.data.get('isAdmin', false) == false
               && request.resource.data.get('isOwner', false) == false
               && request.resource.data.invitationId is string
-              && acceptsInvitation());
+              && acceptsInvitation()));
         allow update: if isCircleAdmin(circleId)
           || (isSelf(memberId) && !changedKeys().hasAny(['isAdmin', 'isOwner']));
         // Leaving a circle, or an admin removing someone.
@@ -151,7 +196,10 @@ service cloud.firestore {
 
       // Votes, options, RSVPs and stage changes come from any member.
       match /polls/{pollId} {
-        allow read, create, update: if isMember(circleId);
+        allow read, create: if isMember(circleId);
+        // Members change stage, options and their own vote; admins anything.
+        allow update: if isCircleAdmin(circleId)
+          || (isMember(circleId) && onlyOwnVote('activityPoll') && onlyOwnVote('placePoll'));
         allow delete: if isCircleAdmin(circleId);
       }
 
