@@ -98,16 +98,12 @@ function CirclesRequistsContainer() {
         memberData.userId = memberId;
         memberData.joinedAt = new Date();
 
-        const circleRef = doc(db, "circles", request.circleId);
-        const circleSnap = await getDoc(circleRef);
-
-        if (circleSnap.exists()) {
-            await setDoc(
-                doc(circleRef, "members", memberId),
-                memberData
-            );
-        } else {
-            console.warn("Circle does not exist, cannot add member.");
+        // No circle read first: an invitee can't read a private circle until
+        // they're a member. The rules refuse the write if the circle is gone.
+        try {
+            await setDoc(doc(db, "circles", request.circleId, "members", memberId), memberData);
+        } catch (error) {
+            console.warn("Could not add member (circle deleted?):", error.message);
         }
         // Update request status
         const requestRef = doc(db, "circleRequests", requestId);
