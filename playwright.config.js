@@ -34,5 +34,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Lets the account-deletion e2e force a failed step (api/delete-account.js).
+    env: { ...process.env, CIRCLE_TEST_MODE: "1" },
   },
 });

@@ -14,6 +14,8 @@ export const fetchUserProfile = createAsyncThunk(
   async (profileId, thunkAPI) => {
     try {
       const profile = await getUserProfile(profileId);
+      // No profile doc (account mid-deletion): loaded, but nothing there.
+      if (!profile) return null;
       const transformedProfile = {
         ...profile,
         createdAt: profile.createdAt?.toDate?.()
