@@ -20,7 +20,10 @@ export default function CircleDetailsContainer({ onClose }) {
     const membersByCircle = useSelector(state => state.members.membersByCircle);
     const circles = useSelector(state => state.circles.circles);
     const { circleId } = useParams();
-    const circle = circles.find(c => c.id === circleId);
+    // A deep link can open a circle that isn't in the loaded list; the circle
+    // page loads it into selectedCircle.
+    const circle = circles.find(c => c.id === circleId)
+        || (selectedCircle?.id === circleId ? selectedCircle : null);
 
 
     // Refs for editable fields

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 export default function CircleCardPresentational({
   hasImage,
   members,
+  membersLoaded = true,
   displayedInterests,
   activeTab,
   user,
@@ -64,7 +65,9 @@ export default function CircleCardPresentational({
                   style={{ color: "var(--color-secondary)" }}
                 >
                   <User className="ltr:mr-1.5 rtl:ml-1.5 h-3.5 w-3.5" />
-                  {members.length} {members.length === 1 ? t("Member") : t("Members")}
+                  {membersLoaded
+                    ? <>{members.length} {members.length === 1 ? t("Member") : t("Members")}</>
+                    : <span aria-hidden="true">…</span>}
                 </p>
               </div>
             </div>

@@ -104,6 +104,7 @@ export async function createCircle(owner, overrides = {}, members = []) {
 export async function addMember(circleId, user, extra = {}) {
   await adminDb.doc(`circles/${circleId}/members/${user.uid}`).set({
     uid: user.uid,
+    userId: user.uid,
     username: user.username,
     email: user.email,
     isAdmin: false,

@@ -61,7 +61,10 @@ function ChatSidebarContainer() {
 
     // Get the current circle (you may need to fetch it from Redux or props)
     const circles = useSelector(state => state.circles.circles);
-    const currentCircle = circles.find(c => c.id === circleId);
+    const selectedCircle = useSelector(state => state.circles.selectedCircle);
+    // Falls back to the deep-linked circle the circle page loaded.
+    const currentCircle = circles.find(c => c.id === circleId)
+        || (selectedCircle?.id === circleId ? selectedCircle : null);
 
     // Use currentCircle for ownership check
     const isOwner = user && currentCircle && currentCircle.createdBy === user.uid;

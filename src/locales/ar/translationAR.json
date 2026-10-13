@@ -194,10 +194,21 @@
     "message": "الصفحة التي تبحث عنها غير موجودة.",
     "backHome": "العودة للصفحة الرئيسية"
   },
-
   "calendar": {
     "title": "التقويم",
     "upcomingEvents": "أحداثك القادمة!",
     "noUpcomingEvents": "لا توجد أحداث قادمة"
-  }
+  },
+  "Couldn't load your circles.": "تعذّر تحميل دوائرك.",
+  "Couldn't load public circles.": "تعذّر تحميل الدوائر العامة.",
+  "Couldn't load more circles.": "تعذّر تحميل المزيد من الدوائر.",
+  "Retry": "إعادة المحاولة",
+  "Load more circles": "تحميل المزيد من الدوائر",
+  "Loading…": "جارٍ التحميل…",
+  "You've seen all circles": "لقد شاهدت كل الدوائر",
+  "No new matches in the last 24 circles": "لا توجد نتائج جديدة في آخر 24 دائرة",
+  "Searching loaded circles only": "البحث في الدوائر المحمّلة فقط",
+  "{{count}} more circles": "{{count}} دائرة إضافية",
+  "This circle no longer exists": "هذه الدائرة لم تعد موجودة",
+  "Back to circles": "العودة إلى الدوائر"
 }

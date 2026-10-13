@@ -175,6 +175,12 @@ service cloud.firestore {
       }
     }
 
+    // Collection-group reads of member docs ("which circles am I in?").
+    // Only your own: the query must filter on userId == your uid.
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // ---------- reports ----------
     // Written by the reporter, read by app admins in the console.
     match /reports/{reportId} {

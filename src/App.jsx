@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import AuthProvider from "../AuthProvider";
 import RoutesPages from "./routes/routes";
 import { useDispatch } from "react-redux";
-import { fetchCircles } from "./features/circles/circlesSlice";
+import { listenToMyMemberships, resetCircles } from "./features/circles/circlesSlice";
 import { fetchUserProfile } from "./features/userProfile/profileSlice";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, checkIfBlocked } from "./firebase-config";
@@ -22,11 +22,13 @@ function App() {
     dispatch(fetchUserProfile(user?.uid));
   }, [dispatch, user?.uid]);
 
-  // Circles are only readable when signed in, so (re)load them per user.
+  // Circles are only readable when signed in. Per user: clear the previous
+  // user's circles, then follow this user's memberships live (the listener
+  // loads their circles on every change).
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchCircles());
-    }
+    dispatch(resetCircles());
+    if (!user?.uid) return undefined;
+    return dispatch(listenToMyMemberships(user.uid));
   }, [dispatch, user?.uid]);
 
   useEffect(() => {
