@@ -2,9 +2,9 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
-import { fetchCircles, listenToCircles } from '../../features/circles/circlesSlice';
+import { fetchCircles, fetchPublicCircles, fetchMorePublicCircles } from '../../features/circles/circlesSlice';
 // slices & hooks
 import { setSelectedCircle } from '../../features/circles/circlesSlice';
 import { fetchCircleMembers } from '../../features/circleMembers/circleMembersSlice';
@@ -29,6 +29,13 @@ function CirclesPageContainer() {
     const { t } = useTranslation();
     const membersByCircle = useSelector(state => state.members.membersByCircle);
     const circles = useSelector(state => state.circles.circles);
+    const joinedCircles = useSelector(state => state.circles.joinedCircles);
+    const joinedIds = useSelector(state => state.circles.joinedIds);
+    const publicPages = useSelector(state => state.circles.publicPages);
+    const publicStatus = useSelector(state => state.circles.publicStatus);
+    const hasMorePublic = useSelector(state => state.circles.hasMorePublic);
+    const loadingMore = useSelector(state => state.circles.loadingMore);
+    const loadMoreError = useSelector(state => state.circles.loadMoreError);
     const { user } = useAuth()
     const navigate = useNavigate();
     const profile = useSelector(getProfileData);
@@ -64,65 +71,88 @@ function CirclesPageContainer() {
         });
     }, [circles, membersByCircle, dispatch]);
 
-    // Helper to check if all members are loaded
-    const allMembersLoaded = circles.every(circle => membersByCircle[circle.id]);
+    // Public circles load on this page, 24 at a time.
+    useEffect(() => {
+        if (user?.uid) dispatch(fetchPublicCircles());
+    }, [dispatch, user?.uid]);
 
-    let filteredCircles = [];
-    let paginatedCircles = [];
-    let pageCount = 0;
+    const matchesSearch = (circle) => {
+        const queryLower = searchQuery.trim().toLowerCase();
+        return !queryLower
+            || circle.circleName?.toLowerCase().includes(queryLower)
+            || circle.description?.toLowerCase().includes(queryLower)
+            || (circle.interests || []).some(interest => interest.toLowerCase().includes(queryLower));
+    };
 
-    if (
-        circlesStatus === "succeeded" &&
-        allMembersLoaded &&
-        (user ? profileStatus === "succeeded" : true)
-    ) {
-        filteredCircles = circles;
+    // "my": joined circles, newest first, numbered client pages.
+    const myCircles = useMemo(() => joinedCircles
+        .filter(circle => circlePrivacy === 'all' || circle.circlePrivacy === circlePrivacy)
+        .slice()
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [joinedCircles, circlePrivacy]);
 
-        if (user && activeTab === 'my') {
-            filteredCircles = circles.filter(circle => profile?.joinedCircles?.includes(circle.id));
-            if (circlePrivacy === 'public') {
-                filteredCircles = filteredCircles.filter(circle => circle.circlePrivacy === 'public');
-            } else if (circlePrivacy === 'private') {
-                filteredCircles = filteredCircles.filter(circle => circle.circlePrivacy === 'private');
-            }
-        } else if (user && profile?.interests && profile.interests.length > 0) {
-            // Convert profile interests to lowercase once
-            const userInterestsLower = profile.interests.map(i => i.toLowerCase());
+    // "forYou": public pages in fetch order, each page sorted by interest match on
+    // its own, so loading more appends below and earlier cards never move.
+    const userInterestsLower = useMemo(
+        () => (profile?.interests || []).map(i => i.toLowerCase()),
+        [profile?.interests]
+    );
+    const forYouCircles = useMemo(() => {
+        const joined = new Set(joinedIds);
+        return publicPages.flatMap(page => page
+            .filter(circle => !joined.has(circle.id))
+            .map(circle => ({
+                ...circle,
+                matchedInterests: (circle.interests || []).filter(interest =>
+                    userInterestsLower.includes(interest.toLowerCase())
+                ),
+            }))
+            .sort((a, b) => b.matchedInterests.length - a.matchedInterests.length));
+    }, [publicPages, joinedIds, userInterestsLower]);
 
-            filteredCircles = circles
-                // Exclude circles the user is a member of
-                .filter(circle => !(profile?.joinedCircles?.includes(circle.id)))
-                .map(circle => ({
-                    ...circle,
-                    matchedInterests: (circle.interests || []).filter(interest =>
-                        userInterestsLower.includes(interest.toLowerCase())
-                    )
-                }))
-                .sort((a, b) => b.matchedInterests.length - a.matchedInterests.length)
-                .filter(circle => circle.circlePrivacy === 'public');
-
-            if (showMutualOnly) {
-                filteredCircles = filteredCircles.filter(circle => circle.matchedInterests.length > 0);
-            }
-        } else {
-            filteredCircles = circles.filter(circle => (circle.circlePrivacy === 'public'));
-        }
-
-        if (searchQuery.trim()) {
-            const queryLower = searchQuery.trim().toLowerCase();
-            filteredCircles = filteredCircles.filter(circle =>
-                circle.circleName?.toLowerCase().includes(queryLower) ||
-                circle.description?.toLowerCase().includes(queryLower) ||
-                (circle.interests && circle.interests.some(interest => interest.toLowerCase().includes(queryLower)))
-            );
-        }
-
-        pageCount = Math.ceil(filteredCircles.length / circlesPerPage);
-        paginatedCircles = filteredCircles.slice(
-            currentPage * circlesPerPage,
-            (currentPage + 1) * circlesPerPage
-        );
+    let filteredCircles = activeTab === 'my' ? myCircles : forYouCircles;
+    if (activeTab === 'forYou' && showMutualOnly) {
+        filteredCircles = filteredCircles.filter(circle => circle.matchedInterests.length > 0);
     }
+    filteredCircles = filteredCircles.filter(matchesSearch);
+
+    const isPaged = activeTab === 'forYou';
+    const pageCount = isPaged ? 0 : Math.ceil(filteredCircles.length / circlesPerPage);
+    const paginatedCircles = isPaged
+        ? filteredCircles
+        : filteredCircles.slice(currentPage * circlesPerPage, (currentPage + 1) * circlesPerPage);
+
+    // Skeleton only on a tab's first load; background refreshes keep the list.
+    const firstLoad = (s) => s === 'idle' || s === 'loading';
+    const showSkeleton = activeTab === 'my'
+        ? firstLoad(circlesStatus)
+        : firstLoad(publicStatus) || circlesStatus === 'loading';
+    const listFailed = activeTab === 'my' ? circlesStatus === 'failed' : publicStatus === 'failed';
+    const retryList = () => dispatch(activeTab === 'my' ? fetchCircles() : fetchPublicCircles());
+
+    // Load more: track how many cards one click added, then focus the first new one.
+    const gridRef = useRef(null);
+    const loadMoreFrom = useRef(null);
+    const [loadMoreResult, setLoadMoreResult] = useState(null); // { added } after a click
+    function handleLoadMore() {
+        loadMoreFrom.current = filteredCircles.length;
+        setLoadMoreResult(null);
+        dispatch(fetchMorePublicCircles());
+    }
+    useEffect(() => {
+        if (loadingMore || loadMoreFrom.current === null) return;
+        const from = loadMoreFrom.current;
+        loadMoreFrom.current = null;
+        if (loadMoreError) return;
+        const added = filteredCircles.length - from;
+        setLoadMoreResult({ added });
+        if (added > 0) gridRef.current?.children[from]?.focus();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadingMore]);
+    useEffect(() => {
+        setLoadMoreResult(null);
+        setCurrentPage(0);
+    }, [activeTab, searchQuery, showMutualOnly, circlePrivacy]);
 
     const [authFormType, setAuthFormType] = useState("login");
 
@@ -131,9 +161,6 @@ function CirclesPageContainer() {
 
     function handleOpenAuthModal() {
         authModalRef.current.open();
-    }
-    function handleCloseAuthModal() {
-        authModalRef.current.close();
     }
     function handleCardClick(circle) {
         if (isLoggedIn) {
@@ -190,12 +217,6 @@ function CirclesPageContainer() {
 
     useSyncPendingRequests(user);
 
-    useEffect(() => {
-        const unsubscribe = dispatch(listenToCircles());
-        return () => {
-            if (unsubscribe) unsubscribe();
-        };
-    }, [dispatch]);
     const createCircleRef = useRef()
     function openCCircleModal() {
         createCircleRef.current.open();
@@ -260,13 +281,20 @@ function CirclesPageContainer() {
                     <CreateCircleModalContainer closeModal={closeCCircleModal} />
                 </Modal>
                 <div className="flex-1">
-                    {(circlesStatus !== "succeeded" ||
-                        profileStatus !== "succeeded" ||
-                        !allMembersLoaded) ? (
+                    {listFailed ? (
+                        <div role="alert" className="flex flex-col items-center gap-3 py-10 text-text">
+                            <span>{t(activeTab === 'my' ? "Couldn't load your circles." : "Couldn't load public circles.")}</span>
+                            <button type="button" onClick={retryList}
+                                className="min-h-11 rounded-3xl border border-primary px-5 text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                                {t("Retry")}
+                            </button>
+                        </div>
+                    ) : showSkeleton ? (
                         <CirclesSkeltonCard />
                     ) : (
                         <CirclesPagePresentational
                             circles={paginatedCircles}
+                            gridRef={gridRef}
                             membersByCircle={membersByCircle}
                             handleCardClick={handleCardClick}
                             activeTab={activeTab}
@@ -285,6 +313,13 @@ function CirclesPageContainer() {
                             circleName={selectedCircleToDelete ? selectedCircleToDelete.circleName : ""}
                         />
                     )}
+                    {/* A failed half while the other half loaded: small line with Retry. */}
+                    {activeTab === 'forYou' && !listFailed && circlesStatus === 'failed' && (
+                        <p role="alert" className="mt-3 text-center text-sm text-text">
+                            {t("Couldn't load your circles.")}{' '}
+                            <button type="button" className="underline text-primary" onClick={() => dispatch(fetchCircles())}>{t("Retry")}</button>
+                        </p>
+                    )}
                 </div>
                 {pageCount > 1 && (
                     <CustomPaginationContainer
@@ -293,37 +328,32 @@ function CirclesPageContainer() {
                         onPageChange={setCurrentPage}
                     />
                 )}
+                {isPaged && !showSkeleton && !listFailed && (
+                    <div className="my-6 flex flex-col items-center gap-2 px-4 text-center text-sm text-text">
+                        {hasMorePublic ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore}
+                                    aria-busy={loadingMore}
+                                    className="min-h-11 rounded-3xl border border-primary px-6 font-semibold text-primary disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                                >
+                                    {loadingMore ? t("Loading…") : t("Load more circles")}
+                                </button>
+                                {loadMoreError && <span role="alert">{t("Couldn't load more circles.")}</span>}
+                                {loadMoreResult?.added === 0 && <span>{t("No new matches in the last 24 circles")}</span>}
+                                {searchQuery.trim() && <span>{t("Searching loaded circles only")}</span>}
+                            </>
+                        ) : (
+                            filteredCircles.length > 0 && <span>{t("You've seen all circles")}</span>
+                        )}
+                        <span className="sr-only" aria-live="polite">
+                            {loadMoreResult?.added > 0 ? t("{{count}} more circles", { count: loadMoreResult.added }) : ''}
+                        </span>
+                    </div>
+                )}
             </>}
-
-            {!user &&
-                <>
-                    {(circlesStatus !== "succeeded" || !allMembersLoaded) ? (
-                        <CirclesSkeltonCard />
-                    ) : paginatedCircles.length > 0 ? (
-                        <CirclesPagePresentational
-                            circles={paginatedCircles}
-                            membersByCircle={membersByCircle}
-                            handleCardClick={handleCardClick}
-                            activeTab={activeTab}
-                            circlesStatus={circlesStatus}
-                            profileStatus={profileStatus}
-                            profileInterests={profile?.interests || []}
-                            user={user}
-                            handleJoinRequest={handleJoinRequest}
-                            handleSwitchToRegister={handleSwitchToRegister}
-                            handleSwitchToLogin={handleSwitchToLogin}
-                            authFormType={authFormType}
-                            authModalRef={authModalRef}
-                            handleCloseAuthModal={handleCloseAuthModal}
-                        />
-                    ) : (
-                        <div className="flex justify-center items-center h-full">
-                            <span>{t("No circles found.")}</span>
-                        </div>
-                    )}
-                </>
-            }
-
         </div>
     );
 }

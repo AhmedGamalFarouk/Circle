@@ -33,7 +33,7 @@ and videos of any failure.
 
 | Path | What it is |
 | --- | --- |
-| `e2e/firebase/` | Emulator config plus a copy of `firestore.rules` and `database.rules.json` from Circle-mobile (`claude/project-thread-cy7tq3`, invitation-only self-join). Copy them again whenever the mobile rules change. |
+| `e2e/firebase/` | Emulator config plus a copy of `firestore.rules` and `database.rules.json` from Circle-mobile (`main`, includes the C11 collection-group member read). Copy them again whenever the mobile rules change. |
 | `e2e/support/emulator.js` | Seeding and inspection through the Admin SDK (bypasses rules), plus `clientFor(user)` for checks that must go through the rules. |
 | `e2e/support/fixtures.js` | The `page` fixture (offline stubbing, error capture), `login()` and `knownBug()`. |
 | `e2e/tests/*.spec.js` | Auth, circles, membership, chat, event planning, profile, smoke and phone-size tests. |

@@ -52,6 +52,7 @@ function CircleCardContainer({
             sendingRequestId={sendingRequestId}
             hasImage={hasImage}
             members={members}
+            membersLoaded={!!membersByCircle?.[circle.id]}
             displayedInterests={displayedInterests}
             isRequestPending={isRequestPending}
             circle={circle}

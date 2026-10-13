@@ -9,6 +9,9 @@ import { getProfileData } from "../../features/userProfile/profileSlice";
 import { useCircleEvents } from "../../hooks/useCircleEvents";
 import { Helmet } from "react-helmet";
 
+// Stable empty array so useCircleEvents doesn't refetch on every render.
+const EMPTY_IDS = [];
+
 const Explore = () => {
   const { position, isLoading, getPosition } = useGeolocation();
   const [myLocation, setMyLocation] = useState([30.1, 31.5]);
@@ -18,9 +21,11 @@ const Explore = () => {
   // Get user data from Redux
   const profile = useSelector(getProfileData);
   const circles = useSelector((state) => state.circles.circles);
+  const circlesStatus = useSelector((state) => state.circles.status);
 
-  // Get events for user's circles
-  const userCircleIds = profile?.joinedCircles || [];
+  // Get events for user's circles (from member docs; pins wait until they load)
+  const joinedIds = useSelector((state) => state.circles.joinedIds);
+  const userCircleIds = circlesStatus === "succeeded" ? joinedIds : EMPTY_IDS;
   const { eventsByCircle, loading: eventsLoading } =
     useCircleEvents(userCircleIds);
 
@@ -205,10 +210,10 @@ const Explore = () => {
   const getEventsWithLocations = async () => {
     const eventsWithLocations = [];
 
-    if (!profile?.joinedCircles || !circles || !eventsByCircle) {
+    if (circlesStatus !== "succeeded" || !circles || !eventsByCircle) {
       console.log("❌ Missing data:", {
         hasProfile: !!profile,
-        hasJoinedCircles: !!profile?.joinedCircles,
+        circlesStatus,
         hasCircles: !!circles,
         hasEventsByCircle: !!eventsByCircle,
       });
@@ -251,7 +256,7 @@ const Explore = () => {
   // Load events with locations when data changes
   useEffect(() => {
     const loadEvents = async () => {
-      if (profile?.joinedCircles && circles && eventsByCircle) {
+      if (circlesStatus === "succeeded" && circles && eventsByCircle) {
         setIsGeocoding(true);
         try {
           const events = await getEventsWithLocations();
@@ -267,7 +272,7 @@ const Explore = () => {
     };
 
     loadEvents();
-  }, [profile, circles, eventsByCircle]);
+  }, [profile, circles, circlesStatus, eventsByCircle]);
 
   return (
     <>

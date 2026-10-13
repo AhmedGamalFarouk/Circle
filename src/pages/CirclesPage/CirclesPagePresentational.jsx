@@ -6,6 +6,7 @@ import DeleteCircleModalContainer from '../../components/ui/Modal/DeleteCircleMo
 import { Helmet } from 'react-helmet';
 function CirclesPagePresentational({
     circles,
+    gridRef,
     membersByCircle,
     handleCardClick,
     activeTab,
@@ -33,9 +34,9 @@ function CirclesPagePresentational({
             <meta name="description" content="Explore and manage your circles" />
         </Helmet>
             {!circles.length && <div className="text-center text-lg text-text-400 py-10">No circles to show.</div>}
-            <div className='mx-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3'>
+            <div ref={gridRef} className='mx-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3'>
                 {circles.map((circle) => (
-                    <div key={circle.id} onClick={() => handleCardClick(circle)} user={user} className='cursor bg-main rounded-3xl'>
+                    <div key={circle.id} tabIndex={-1} onClick={() => handleCardClick(circle)} className='cursor bg-main rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
                         <CircleCardContainer
                             sendingRequestId={sendingRequestId}
                             circle={circle}

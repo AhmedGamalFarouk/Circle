@@ -196,5 +196,17 @@
     "title": "Calendar",
     "upcomingEvents": "Your Upcoming Events!",
     "noUpcomingEvents": "No upcoming events"
-  }
+  },
+  "Couldn't load your circles.": "Couldn't load your circles.",
+  "Couldn't load public circles.": "Couldn't load public circles.",
+  "Couldn't load more circles.": "Couldn't load more circles.",
+  "Retry": "Retry",
+  "Load more circles": "Load more circles",
+  "Loading…": "Loading…",
+  "You've seen all circles": "You've seen all circles",
+  "No new matches in the last 24 circles": "No new matches in the last 24 circles",
+  "Searching loaded circles only": "Searching loaded circles only",
+  "{{count}} more circles": "{{count}} more circles",
+  "This circle no longer exists": "This circle no longer exists",
+  "Back to circles": "Back to circles"
 }
