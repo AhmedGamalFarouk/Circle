@@ -101,6 +101,11 @@ function ChatInputContainer({
   const isMember = members.some(
     (member) => member.id === userId || member.uid === userId,
   );
+  // Until members load, isMember is false even for members, so sending would
+  // wrongly open the Join Circle modal and drop the message.
+  const membersLoaded = useSelector(
+    (state) => state.members?.membersByCircle?.[circleId] !== undefined,
+  );
   const notMemberModalRef = useRef();
   function openNotMemberModal() {
     notMemberModalRef.current.open();
@@ -197,7 +202,7 @@ function ChatInputContainer({
         closeCameraModal={mediaHandlers.closeCameraModal}
         handleCapturedPhoto={mediaHandlers.handleCapturedPhoto}
         isMember={isMember}
-        disabled={!isMember}
+        disabled={!membersLoaded}
       />
     </div>
   );
