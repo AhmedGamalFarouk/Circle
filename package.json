@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --test src/shared/schema.test.mjs",
-    "test:api": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only firestore \"node --test api/cron.test.mjs\"",
+    "test:api": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore \"node --test --test-concurrency=1 api/*.test.mjs\"",
     "preview": "vite preview",
     "test:e2e": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test\"",
     "test:e2e:ui": "firebase emulators:exec --config e2e/firebase/firebase.json --project demo-circle --only auth,firestore,database \"playwright test --ui\"",

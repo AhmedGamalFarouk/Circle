@@ -1,4 +1,9 @@
 {
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/" }],
-  "crons": [{ "path": "/api/cron", "schedule": "0 3 * * *" }]
+  "crons": [{ "path": "/api/cron", "schedule": "0 3 * * *" }],
+  "functions": {
+    "api/cron.js": { "maxDuration": 60 },
+    "api/delete-account.js": { "maxDuration": 60 },
+    "api/delete-media.js": { "maxDuration": 30 }
+  }
 }

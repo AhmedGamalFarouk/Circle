@@ -2,10 +2,46 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { Buffer } from 'node:buffer'
+
+// Serves api/*.js (the Vercel routes) from the dev server in development and e2e
+// mode, so the app and Playwright reach them on the same origin as in production.
+function apiRoutes() {
+  return {
+    name: 'circle-api-routes',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const match = req.url.match(/^\/api\/([a-z-]+)(?:\?|$)/);
+        if (!match) return next();
+        try {
+          const route = await server.ssrLoadModule(`/api/${match[1]}.js`);
+          const handler = route[req.method];
+          if (!handler) {
+            res.statusCode = 405;
+            return res.end();
+          }
+          const chunks = [];
+          for await (const chunk of req) chunks.push(chunk);
+          const body = ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks);
+          const response = await handler(new Request(`http://${req.headers.host}${req.url}`, {
+            method: req.method, headers: req.headers, body,
+          }));
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (error) {
+          server.config.logger.error(`api/${match[1]}: ${error.stack || error}`);
+          res.statusCode = 500;
+          res.end(JSON.stringify({ ok: false, error: 'server' }));
+        }
+      });
+    },
+  };
+}
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), ...(mode === 'development' || mode === 'e2e' ? [apiRoutes()] : [])],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'), // 👈 alias for /src
@@ -55,4 +91,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000
   }
-})
+}))
